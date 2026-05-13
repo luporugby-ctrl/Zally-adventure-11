@@ -3,380 +3,351 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zally Adventure - Prompting Livello 3 (Golf)</title>
+    <title>Zally Golf Club - Master Prompting</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
+        * { box-sizing: border-box; }
+
         body {
-            background-color: #111;
+            background-color: #000;
             color: #fff;
             font-family: 'Press Start 2P', monospace;
-            text-align: center;
             margin: 0;
-            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
             overflow: hidden;
         }
 
-        h1 {
-            color: #f1c40f;
-            text-shadow: 2px 2px #e74c3c;
-            font-size: 24px;
-            margin-bottom: 5px;
-        }
-
-        h2 {
-            font-size: 12px;
-            color: #2ecc71;
-            margin-bottom: 20px;
-        }
-
-        #game-board {
+        /* Schermo Arcade */
+        #arcade-screen {
             width: 800px;
-            height: 400px;
-            background-color: #27ae60;
-            border: 8px solid #ecf0f1;
-            border-radius: 10px;
-            margin: 0 auto;
+            height: 500px;
             position: relative;
-            box-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
-            background-image: linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
-            background-size: 40px 40px;
+            border: 10px solid #333;
+            border-radius: 15px;
+            background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 40%, #27ae60 40%, #2ecc71 100%);
+            overflow: hidden;
+            image-rendering: pixelated;
         }
 
-        /* Elementi di gioco */
-        #zally {
+        /* Scenografia Pixel Art */
+        .hill {
             position: absolute;
-            left: 20px;
-            top: 150px;
-            width: 50px;
-            height: 50px;
-            font-size: 40px;
-            line-height: 50px;
-            transition: left 1s linear, top 1s linear;
+            background-color: #219150;
+            border-radius: 50%;
+            z-index: 1;
         }
 
-        #zally::after {
-            content: "💡"; /* La lampadina di Zally */
+        .cloud {
             position: absolute;
-            top: -15px;
-            right: -15px;
-            font-size: 20px;
-            animation: blink 1s infinite alternate;
+            background: #fff;
+            width: 60px; height: 20px;
+            border-radius: 10px;
+            opacity: 0.8;
+            animation: moveClouds 20s linear infinite;
         }
 
-        @keyframes blink {
-            0% { opacity: 0.5; }
-            100% { opacity: 1; text-shadow: 0 0 10px yellow; }
+        @keyframes moveClouds {
+            from { left: -100px; }
+            to { left: 900px; }
         }
 
+        /* HUD - Interfaccia di Gioco */
+        #hud {
+            position: absolute;
+            top: 20px; left: 20px; right: 20px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border: 2px solid #fff;
+            font-size: 10px;
+            line-height: 1.5;
+        }
+
+        #wind-meter {
+            color: #f1c40f;
+        }
+
+        /* Zally di Profilo */
+        #zally-container {
+            position: absolute;
+            bottom: 40px;
+            left: 100px;
+            z-index: 5;
+            transition: transform 0.3s;
+        }
+
+        #zally-sprite {
+            width: 80px;
+            height: 120px;
+            background: url('zally.png') no-repeat center; /* Usa il tuo file zally.png */
+            background-size: contain;
+            filter: drop-shadow(5px 5px 0px rgba(0,0,0,0.2));
+            transform: scaleX(-1); /* Di profilo verso il campo */
+        }
+
+        /* La Pallina */
         #ball {
             position: absolute;
-            left: 80px;
-            top: 170px;
-            width: 15px;
-            height: 15px;
-            background-color: #fff;
+            bottom: 50px;
+            left: 180px;
+            width: 12px;
+            height: 12px;
+            background: #fff;
             border-radius: 50%;
-            box-shadow: inset -2px -2px rgba(0,0,0,0.3);
-            transition: left 1s ease-out, top 1s ease-out;
-            z-index: 10;
+            box-shadow: inset -2px -2px #ccc;
+            z-index: 6;
+            transition: all 1.5s cubic-bezier(0.25, 0.1, 0.25, 1);
         }
 
-        #hole {
+        /* Finestra Challenge - Stile Retro */
+        #ui-layer {
             position: absolute;
-            right: 40px;
-            top: 160px;
-            width: 30px;
-            height: 30px;
-            background-color: #000;
-            border-radius: 50%;
-            border: 2px solid #555;
-            box-shadow: inset 0 5px 10px rgba(0,0,0,0.8);
-        }
-
-        #flag {
-            position: absolute;
-            right: 50px;
-            top: 100px;
-            width: 4px;
-            height: 60px;
-            background-color: #ecf0f1;
-        }
-
-        #flag::after {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 4px;
-            width: 30px;
-            height: 20px;
-            background-color: #e74c3c;
-            clip-path: polygon(0 0, 100% 50%, 0 100%);
-        }
-
-        /* Finestra Modale (Popup) */
-        #modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.4);
             z-index: 100;
         }
 
-        #modal-box {
+        .window {
+            background: #00429d;
+            border: 4px solid #fff;
+            box-shadow: 8px 8px 0px #000;
+            width: 600px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .window-title {
+            background: #fff;
+            color: #00429d;
+            margin: -20px -20px 20px -20px;
+            padding: 10px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .club-selection {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .club-btn {
+            background: #34495e;
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 10px;
+            font-family: 'Press Start 2P';
+            font-size: 8px;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .club-btn:hover {
+            background: #f1c40f;
+            color: #000;
+        }
+
+        #challenge-text {
+            font-size: 10px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .input-area {
+            display: none;
+            margin-top: 10px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            font-family: 'Press Start 2P';
+            font-size: 10px;
+            border: 2px solid #fff;
+            background: #000;
+            color: #2ecc71;
+            outline: none;
+        }
+
+        .hint {
+            font-size: 8px;
+            color: #f1c40f;
+            margin-top: 10px;
+        }
+
+        #feedback-overlay {
+            display: none;
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 600px;
-            background-color: #34495e;
-            border: 4px solid #f1c40f;
-            padding: 30px;
-            box-shadow: 10px 10px #000;
-            text-align: left;
+            background: #000;
+            border: 4px solid #2ecc71;
+            padding: 20px;
+            z-index: 200;
+            text-align: center;
         }
 
-        .modal-title {
-            color: #f1c40f;
-            font-size: 16px;
-            margin-bottom: 15px;
-            border-bottom: 2px dashed #7f8c8d;
-            padding-bottom: 10px;
-        }
-
-        .modal-text {
-            font-size: 12px;
-            line-height: 1.8;
-            margin-bottom: 25px;
-        }
-
-        .btn-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .action-btn {
-            background-color: #2c3e50;
-            color: #ecf0f1;
-            font-family: 'Press Start 2P', monospace;
-            font-size: 10px;
-            padding: 15px;
-            border: 2px solid #ecf0f1;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: left;
-        }
-
-        .action-btn:hover {
-            background-color: #f1c40f;
-            color: #000;
-            border-color: #fff;
-        }
-
-        #feedback-box {
-            display: none;
-            margin-top: 15px;
-            padding: 10px;
-            background: #27ae60;
-            color: #fff;
-            font-size: 10px;
-            border: 2px solid #fff;
-        }
-
-        #next-btn {
-            display: none;
-            margin-top: 15px;
-            background-color: #e74c3c;
-            color: #fff;
-            padding: 10px;
-            font-family: 'Press Start 2P', monospace;
-            border: 2px solid #fff;
-            cursor: pointer;
-            float: right;
-        }
-
-        .hud {
-            display: flex;
-            justify-content: space-between;
-            width: 800px;
-            margin: 10px auto;
-            font-size: 12px;
-        }
     </style>
 </head>
 <body>
 
-    <h1>ZALLY GOLF CLUB</h1>
-    <h2>Prompting Avanzato - Livello 3</h2>
+    <div id="arcade-screen">
+        <div class="cloud" style="top: 50px; animation-delay: 0s;"></div>
+        <div class="cloud" style="top: 80px; animation-delay: -5s;"></div>
+        <div class="hill" style="width: 400px; height: 100px; bottom: 58%; left: -50px;"></div>
+        <div class="hill" style="width: 300px; height: 80px; bottom: 58%; right: -20px;"></div>
 
-    <div class="hud">
-        <div id="shot-counter">TIRO: 1 / 4</div>
-        <div id="score">SCORE: 0000</div>
-    </div>
+        <div id="hud">
+            <div class="stat-box">
+                HOLE: 03 (MASTER)<br>
+                PAR: 4<br>
+                SHOT: <span id="shot-count">1</span>
+            </div>
+            <div class="stat-box" id="wind-meter">
+                WIND: 7m/s ↗<br>
+                POWER: <span id="power-val">0</span>%
+            </div>
+        </div>
 
-    <div id="game-board">
-        <div id="zally">👨‍💻</div> <div id="ball"></div>
-        <div id="flag"></div>
-        <div id="hole"></div>
-    </div>
+        <div id="zally-container">
+            <div id="zally-sprite"></div>
+        </div>
+        <div id="ball"></div>
 
-    <div id="modal-overlay">
-        <div id="modal-box">
-            <div class="modal-title" id="modal-title">Use Case 1</div>
-            <div class="modal-text" id="modal-text">Descrizione del problema...</div>
-            <div class="btn-container" id="btn-container">
+        <div id="ui-layer">
+            <div class="window" id="selection-window">
+                <div class="window-title">SCEGLI LA MAZZA (TECNICA PROMPTING)</div>
+                <div id="challenge-text">Zally è sul tee di partenza. Il task è complesso: configurare un assistente per l'audit inventariale che rispetti policy aziendali e bias. Quale tecnica serve per impostare la "postura" corretta?</div>
+                <div class="club-selection">
+                    <button class="club-btn" onclick="selectClub('Drive', 'Role-Playing Avanzato')">🏌️ DRIVER<br>(Role-Playing)</button>
+                    <button class="club-btn" onclick="selectClub('Iron', 'Context-Aware')">🏒 IRON<br>(Context)</button>
+                    <button class="club-btn" onclick="selectClub('Wedge', 'Negative Prompting')">📐 WEDGE<br>(Negative)</button>
+                    <button class="club-btn" onclick="selectClub('Putter', 'Meta-Prompting')">⛳ PUTTER<br>(Meta)</button>
                 </div>
-            <div id="feedback-box"></div>
-            <button id="next-btn" onclick="nextShot()">Tira!</button>
+            </div>
+
+            <div class="window" id="challenge-window" style="display:none;">
+                <div class="window-title" id="challenge-title">CHALLENGE: ROLE-PLAYING</div>
+                <div id="specific-task">...</div>
+                <div class="input-area" style="display:block;">
+                    <input type="text" id="user-prompt" placeholder="SCRIVI QUI IL TUO PROMPT..." onkeydown="if(event.key==='Enter') hitBall()">
+                    <div class="hint">PREMI 'INVIO' PER COLPIRE LA PALLINA</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="feedback-overlay">
+            <h2 id="feedback-title">OTTIMO COLPO!</h2>
+            <p id="feedback-desc" style="font-size: 10px; line-height: 1.5;"></p>
+            <button class="club-btn" onclick="nextChallenge()" style="margin-top: 10px; width: 100%; text-align: center;">PROSSIMO TIRO</button>
         </div>
     </div>
 
     <script>
         const challenges = [
             {
-                title: "Tiro 1: Il Colpo d'Impostazione",
-                text: "Devi riprogettare alcuni flussi di smistamento per l'area Wholesale. Ti serve che l'AI non sia generica, ma ragioni con logiche lean, calcolando i lead time e scartando soluzioni che aumentano il personale interinale. Quale mazza usi per impostare la risposta?",
-                options: [
-                    { text: "A. Legno (Context-Aware)", correct: false },
-                    { text: "B. Drive (Role-Playing Avanzato)", correct: true },
-                    { text: "C. Putter (Self-Correction)", correct: false }
-                ],
-                feedback: "Perfetto! Con il Role-Playing Avanzato definisci le 'regole d'ingaggio'. Non le dici solo 'chi' è, ma imponi policy rigide sul suo comportamento analitico.",
-                ballX: 250, ballY: 100, zallyX: 200, zallyY: 80
+                club: "Drive",
+                tech: "Role-Playing Avanzato",
+                task: "Definisci il ruolo di un 'Senior Inventory Auditor'. Deve essere ossessionato dai dati, non accettare scuse per i colli mancanti e seguire la policy 'Zero-Tolerance'.",
+                feedback: "Drive perfetto! Hai impostato la personalità dell'AI (System Instructions) garantendo coerenza in tutto il processo di audit."
             },
             {
-                title: "Tiro 2: Aggirare l'Ostacolo",
-                text: "I volumi in Q4 sono critici. C'è un collo di bottiglia sulle linee di imballaggio e ti serve una strategia. Invece di fare una domanda secca e rischiare risposte fuori fuoco, devi fornire tutto lo scenario iniziale. Quale tecnica scegli?",
-                options: [
-                    { text: "A. Legno (Context-Aware Prompting)", correct: true },
-                    { text: "B. Ferro Corto (Negative Prompting)", correct: false },
-                    { text: "C. Caddie (Meta-Prompting)", correct: false }
-                ],
-                feedback: "Esatto! Il Context-Aware fornisce all'AI il perimetro (volumi, stagionalità, limiti). È come valutare il vento prima di tirare: la risposta sarà calibrata perfettamente sulla tua realtà.",
-                ballX: 450, ballY: 250, zallyX: 400, zallyY: 230
+                club: "Iron",
+                tech: "Context-Aware Prompting",
+                task: "Siamo in Peak Season (Black Friday), i corrieri sono sovraccarichi. Spiega a Gemini questo scenario prima di chiedergli di ottimizzare i turni.",
+                feedback: "Fairway centrato! Fornendo il contesto (stagionalità e limiti), Gemini non darà soluzioni generiche ma calibrate sull'emergenza."
             },
             {
-                title: "Tiro 3: Avvicinamento al Green",
-                text: "Devi inviare un recap delle performance operative a partner commerciali esterni. Vuoi assicurarti che Gemini non inserisca gergo tecnico da magazzino o acronimi logistici che non capirebbero. Come limiti l'AI?",
-                options: [
-                    { text: "A. Drive (Role-Playing Avanzato)", correct: false },
-                    { text: "B. Ferro Corto (Negative Prompting)", correct: true },
-                    { text: "C. Legno (Context-Aware)", correct: false }
-                ],
-                feedback: "Ottimo! Il Negative Prompting dice all'AI esattamente cosa NON fare ('Non usare acronimi', 'Non superare le 100 parole'). È un colpo di precisione per evitare i bunker del gergo incomprensibile.",
-                ballX: 650, ballY: 180, zallyX: 600, zallyY: 160
+                club: "Wedge",
+                tech: "Negative Prompting",
+                task: "Chiedi un report di magazzino vietando esplicitamente l'uso di gergo tecnico, acronimi e impedendo al modello di superare i 3 punti elenco.",
+                feedback: "Uscita dal bunker magistrale! I vincoli negativi puliscono l'output da informazioni inutili o complicate."
             },
             {
-                title: "Tiro 4: Il Putt Finale in Buca",
-                text: "Sei bloccato. Vuoi creare un modello previsionale complesso per i resi, ma non hai idea di come scrivere il prompt iniziale per l'AI. Come puoi sfruttare Gemini stesso per uscirne?",
-                options: [
-                    { text: "A. Ferro Corto (Negative Prompting)", correct: false },
-                    { text: "B. Putter (Self-Correction)", correct: false },
-                    { text: "C. Il Caddie (Meta-Prompting)", correct: true }
-                ],
-                feedback: "Buca in uno! Con il Meta-Prompting deleghi la complessità: chiedi a Gemini di farti 3 domande sulle tue operations e di scriverti lui il prompt perfetto. Il colpo da maestro definitivo.",
-                ballX: 745, ballY: 175, zallyX: 700, zallyY: 155 // Buca a X:730 Y:160, palla centrata
+                club: "Putter",
+                tech: "Meta-Prompting",
+                task: "Non sai come approcciare un problema di cross-docking. Chiedi a Gemini di farti 3 domande per costruire lui il prompt migliore per te.",
+                feedback: "BUCA IN UNO! Il Meta-Prompting trasforma Gemini nel tuo Prompt Engineer personale."
             }
         ];
 
-        let currentShot = 0;
-        let score = 0;
+        let currentStep = 0;
+        let selectedClub = "";
 
-        const modal = document.getElementById('modal-overlay');
-        const modalTitle = document.getElementById('modal-title');
-        const modalText = document.getElementById('modal-text');
-        const btnContainer = document.getElementById('btn-container');
-        const feedbackBox = document.getElementById('feedback-box');
-        const nextBtn = document.getElementById('next-btn');
-        
-        const ball = document.getElementById('ball');
-        const zally = document.getElementById('zally');
-        const shotCounter = document.getElementById('shot-counter');
-        const scoreDisplay = document.getElementById('score');
-
-        // Avvia il gioco dopo 1 secondo
-        setTimeout(showChallenge, 1000);
-
-        function showChallenge() {
-            if (currentShot >= challenges.length) {
-                endGame();
-                return;
-            }
-
-            const challenge = challenges[currentShot];
-            modalTitle.innerText = challenge.title;
-            modalText.innerText = challenge.text;
-            btnContainer.innerHTML = '';
-            feedbackBox.style.display = 'none';
-            nextBtn.style.display = 'none';
-
-            challenge.options.forEach((opt, index) => {
-                const btn = document.createElement('button');
-                btn.className = 'action-btn';
-                btn.innerText = opt.text;
-                btn.onclick = () => checkAnswer(opt.correct, btn);
-                btnContainer.appendChild(btn);
-            });
-
-            modal.style.display = 'block';
+        function selectClub(club, tech) {
+            selectedClub = tech;
+            document.getElementById('selection-window').style.display = 'none';
+            document.getElementById('challenge-window').style.display = 'block';
+            document.getElementById('challenge-title').innerText = `MAZZA: ${club} (${tech})`;
+            document.getElementById('specific-task').innerText = challenges[currentStep].task;
+            document.getElementById('user-prompt').focus();
         }
 
-        function checkAnswer(isCorrect, selectedBtn) {
-            // Disabilita tutti i bottoni
-            const buttons = document.querySelectorAll('.action-btn');
-            buttons.forEach(btn => btn.style.pointerEvents = 'none');
+        function hitBall() {
+            const userPrompt = document.getElementById('user-prompt').value;
+            if (userPrompt.length < 5) return;
 
-            if (isCorrect) {
-                selectedBtn.style.backgroundColor = '#27ae60';
-                feedbackBox.style.background = '#27ae60';
-                feedbackBox.innerText = challenges[currentShot].feedback;
-                score += 500;
-                scoreDisplay.innerText = "SCORE: " + score;
+            // Animazione Colpo
+            document.getElementById('challenge-window').style.display = 'none';
+            document.getElementById('ui-layer').style.background = 'transparent';
+            
+            // Zally 'colpisce' (piccolo movimento)
+            document.getElementById('zally-container').style.transform = 'translateX(10px) rotate(-5deg)';
+            
+            // La pallina vola via (prospettiva)
+            const ball = document.getElementById('ball');
+            ball.style.left = "400px";
+            ball.style.bottom = "300px";
+            ball.style.transform = "scale(0.2)";
+            ball.style.opacity = "0";
+
+            setTimeout(() => {
+                showFeedback();
+            }, 1600);
+        }
+
+        function showFeedback() {
+            const feedback = document.getElementById('feedback-overlay');
+            document.getElementById('feedback-desc').innerText = challenges[currentStep].feedback;
+            feedback.style.display = 'block';
+        }
+
+        function nextChallenge() {
+            currentStep++;
+            if (currentStep < challenges.length) {
+                // Reset Pallina e UI
+                const ball = document.getElementById('ball');
+                ball.style.left = "180px";
+                ball.style.bottom = "50px";
+                ball.style.transform = "scale(1)";
+                ball.style.opacity = "1";
+                document.getElementById('zally-container').style.transform = 'none';
+                document.getElementById('user-prompt').value = "";
+                document.getElementById('shot-count').innerText = currentStep + 1;
+                
+                document.getElementById('feedback-overlay').style.display = 'none';
+                document.getElementById('ui-layer').style.background = 'rgba(0,0,0,0.4)';
+                document.getElementById('selection-window').style.display = 'block';
+                document.getElementById('challenge-window').style.display = 'none';
             } else {
-                selectedBtn.style.backgroundColor = '#c0392b';
-                feedbackBox.style.background = '#c0392b';
-                feedbackBox.innerText = "Sbagliato! Rivedi le tecniche di Prompting. " + challenges[currentShot].feedback;
-                score -= 100;
-                scoreDisplay.innerText = "SCORE: " + score;
+                alert("CAMPIONATO FINITO! ZALLY È UN MASTER PROMPTER!");
+                location.reload();
             }
-
-            feedbackBox.style.display = 'block';
-            nextBtn.style.display = 'block';
-        }
-
-        function nextShot() {
-            modal.style.display = 'none';
-            
-            // Muovi la palla e Zally
-            const challenge = challenges[currentShot];
-            ball.style.left = challenge.ballX + 'px';
-            ball.style.top = challenge.ballY + 'px';
-            
-            zally.style.left = challenge.zallyX + 'px';
-            zally.style.top = challenge.zallyY + 'px';
-
-            currentShot++;
-            
-            if (currentShot < challenges.length) {
-                shotCounter.innerText = `TIRO: ${currentShot + 1} / 4`;
-                setTimeout(showChallenge, 2000); // Pausa per far vedere l'animazione prima del prossimo popup
-            } else {
-                setTimeout(endGame, 1500); // Buca in uno, fine del gioco
-            }
-        }
-
-        function endGame() {
-            modalTitle.innerText = "BUCA COMPLETATA!";
-            modalText.innerText = `Complimenti! Zally ha padroneggiato le tecniche di Prompting Avanzato. Score Finale: ${score}`;
-            btnContainer.innerHTML = '';
-            feedbackBox.style.display = 'none';
-            nextBtn.style.display = 'none';
-            
-            // Effetto buca (palla scompare)
-            ball.style.transform = 'scale(0)';
-            
-            modal.style.display = 'block';
         }
     </script>
 </body>
