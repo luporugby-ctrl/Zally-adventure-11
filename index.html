@@ -1,354 +1,1257 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zally Golf Club - Master Prompting</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Zally Golf Club – Prompt Master</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{
+  width:100%;height:100%;
+  background:#0a0a0f;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Press Start 2P',monospace;
+  overflow:hidden;
+}
 
-        * { box-sizing: border-box; }
+/* ═══════════════════════════════════════════
+   WRAPPER
+═══════════════════════════════════════════ */
+#game{
+  position:relative;
+  width:900px;
+  height:580px;
+  background:#000;
+  overflow:hidden;
+  border:3px solid #1a3a1a;
+  box-shadow:0 0 60px rgba(0,255,80,0.08),0 0 0 1px #111;
+}
 
-        body {
-            background-color: #000;
-            color: #fff;
-            font-family: 'Press Start 2P', monospace;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            overflow: hidden;
-        }
+/* ═══════════════════════════════════════════
+   CANVAS (campo di gioco)
+═══════════════════════════════════════════ */
+#fieldCanvas{
+  position:absolute;top:0;left:0;
+  width:100%;height:100%;
+  image-rendering:pixelated;
+}
 
-        /* Schermo Arcade */
-        #arcade-screen {
-            width: 800px;
-            height: 500px;
-            position: relative;
-            border: 10px solid #333;
-            border-radius: 15px;
-            background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 40%, #27ae60 40%, #2ecc71 100%);
-            overflow: hidden;
-            image-rendering: pixelated;
-        }
+/* ═══════════════════════════════════════════
+   HUD TOP
+═══════════════════════════════════════════ */
+#hud{
+  position:absolute;top:0;left:0;right:0;height:46px;
+  background:linear-gradient(to bottom,rgba(0,0,0,0.92),rgba(0,0,0,0));
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 14px;z-index:30;pointer-events:none;
+}
+.hud-pill{
+  background:rgba(0,8,24,0.85);
+  border:1.5px solid rgba(80,180,255,0.35);
+  padding:5px 12px;font-size:6.5px;
+  color:#a0c8ff;line-height:2;
+  white-space:nowrap;
+}
+.hud-pill span{color:#fff;}
+.hud-center{font-size:9px;color:#fff;text-shadow:0 0 12px #4af;}
+#windArrow{color:#f1c40f;}
 
-        /* Scenografia Pixel Art */
-        .hill {
-            position: absolute;
-            background-color: #219150;
-            border-radius: 50%;
-            z-index: 1;
-        }
+/* ═══════════════════════════════════════════
+   PANNELLO CHALLENGE (bottom sheet)
+═══════════════════════════════════════════ */
+#challengePanel{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(170deg,#03091e 0%,#060d26 100%);
+  border-top:2px solid #1a3a6a;
+  z-index:40;
+  padding:14px 20px 12px;
+  transform:translateY(0);
+  transition:transform 0.4s cubic-bezier(.4,0,.2,1);
+}
+#challengePanel.hidden{transform:translateY(100%);}
 
-        .cloud {
-            position: absolute;
-            background: #fff;
-            width: 60px; height: 20px;
-            border-radius: 10px;
-            opacity: 0.8;
-            animation: moveClouds 20s linear infinite;
-        }
+.challenge-header{
+  display:flex;align-items:center;gap:10px;margin-bottom:10px;
+}
+.tech-badge{
+  font-size:6px;padding:4px 10px;
+  border:1.5px solid currentColor;
+  white-space:nowrap;
+}
+.hole-label{font-size:6px;color:#567;margin-left:auto;white-space:nowrap;}
 
-        @keyframes moveClouds {
-            from { left: -100px; }
-            to { left: 900px; }
-        }
+.scenario{
+  font-size:6.5px;color:#8aabb0;line-height:2;
+  border-left:2px solid #1a4a6a;padding-left:10px;
+  margin-bottom:10px;
+}
+.question{font-size:7.5px;color:#ddeeff;margin-bottom:10px;}
 
-        /* HUD - Interfaccia di Gioco */
-        #hud {
-            position: absolute;
-            top: 20px; left: 20px; right: 20px;
-            display: flex;
-            justify-content: space-between;
-            z-index: 10;
-            pointer-events: none;
-        }
+/* Griglia risposte */
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px;}
+.ans{
+  background:rgba(5,15,40,0.9);
+  border:1.5px solid #1a3a5a;
+  color:#a0b8d0;
+  font-family:'Press Start 2P',monospace;
+  font-size:5.8px;
+  padding:9px 10px;
+  cursor:pointer;text-align:left;
+  line-height:1.9;
+  transition:background .12s,border-color .12s,color .12s;
+  position:relative;
+}
+.ans:hover{background:rgba(20,60,120,0.7);border-color:#4af;color:#fff;}
+.ans.correct{
+  background:rgba(10,50,25,0.9);
+  border-color:#2ecc71;color:#2ecc71;
+  pointer-events:none;
+}
+.ans.wrong{
+  background:rgba(50,10,10,0.9);
+  border-color:#e74c3c;color:#e74c3c;
+  pointer-events:none;
+}
+.ans.dimmed{pointer-events:none;opacity:0.4;}
 
-        .stat-box {
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            border: 2px solid #fff;
-            font-size: 10px;
-            line-height: 1.5;
-        }
+/* Feedback inline */
+#inlineFB{
+  display:none;
+  font-size:6.2px;line-height:1.9;
+  color:#a0ddb0;
+  border-left:2px solid #2ecc71;
+  padding-left:10px;margin-bottom:8px;
+}
+#inlineFB.bad{color:#e0a0a0;border-color:#e74c3c;}
 
-        #wind-meter {
-            color: #f1c40f;
-        }
+/* Bottone avanti */
+#nextBtn{
+  display:none;width:100%;
+  background:transparent;
+  border:1.5px solid #2ecc71;
+  color:#2ecc71;
+  font-family:'Press Start 2P',monospace;
+  font-size:7px;padding:9px;
+  cursor:pointer;letter-spacing:1px;
+  transition:background .15s,color .15s;
+}
+#nextBtn:hover{background:#2ecc71;color:#000;}
 
-        /* Zally di Profilo */
-        #zally-container {
-            position: absolute;
-            bottom: 40px;
-            left: 100px;
-            z-index: 5;
-            transition: transform 0.3s;
-        }
+/* ═══════════════════════════════════════════
+   POWER METER (bottom, appare dopo risposta)
+═══════════════════════════════════════════ */
+#powerZone{
+  position:absolute;bottom:0;left:0;right:0;
+  display:none;
+  flex-direction:column;align-items:center;
+  padding:14px 20px 16px;
+  background:linear-gradient(170deg,#03091e,#060d26);
+  border-top:2px solid #1a3a6a;
+  z-index:50;gap:10px;
+}
+#powerInstruction{font-size:6.5px;color:#f1c40f;animation:blink .75s step-end infinite;}
+@keyframes blink{50%{opacity:0;}}
 
-        #zally-sprite {
-            width: 80px;
-            height: 120px;
-            background: url('zally.png') no-repeat center; /* Usa il tuo file zally.png */
-            background-size: contain;
-            filter: drop-shadow(5px 5px 0px rgba(0,0,0,0.2));
-            transform: scaleX(-1); /* Di profilo verso il campo */
-        }
+#powerTrack{
+  width:500px;height:26px;
+  background:#05101e;
+  border:2px solid #1a3a5a;
+  position:relative;overflow:hidden;
+}
+#powerFill{
+  height:100%;width:0%;
+  background:linear-gradient(to right,#1abc9c 0%,#f1c40f 50%,#e74c3c 100%);
+  transition:width .04s linear;
+  position:relative;
+}
+/* zona sweet spot */
+#sweetSpot{
+  position:absolute;top:0;left:38%;width:24%;height:100%;
+  background:rgba(255,255,255,0.07);
+  border-left:1px dashed rgba(255,255,255,0.3);
+  border-right:1px dashed rgba(255,255,255,0.3);
+}
+.power-labels{
+  width:500px;display:flex;justify-content:space-between;
+  font-size:5.5px;color:#456;margin-top:-6px;
+}
+#swingBtn{
+  width:220px;height:38px;
+  background:#c0392b;border:2.5px solid #fff;
+  color:#fff;font-family:'Press Start 2P',monospace;
+  font-size:9px;cursor:pointer;letter-spacing:2px;
+  animation:pulseRed .8s infinite alternate;
+}
+@keyframes pulseRed{from{box-shadow:0 0 0 #c0392b;}to{box-shadow:0 0 18px #e74c3c;}}
+#swingBtn:hover{background:#e74c3c;}
 
-        /* La Pallina */
-        #ball {
-            position: absolute;
-            bottom: 50px;
-            left: 180px;
-            width: 12px;
-            height: 12px;
-            background: #fff;
-            border-radius: 50%;
-            box-shadow: inset -2px -2px #ccc;
-            z-index: 6;
-            transition: all 1.5s cubic-bezier(0.25, 0.1, 0.25, 1);
-        }
+/* ═══════════════════════════════════════════
+   SHOT RESULT BADGE
+═══════════════════════════════════════════ */
+#shotBadge{
+  position:absolute;left:50%;top:34%;
+  transform:translate(-50%,-50%) scale(0);
+  font-size:20px;color:#f1c40f;
+  text-shadow:3px 3px 0 #000;
+  text-align:center;line-height:1.7;
+  z-index:60;pointer-events:none;
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+}
+#shotBadge.show{transform:translate(-50%,-50%) scale(1);}
 
-        /* Finestra Challenge - Stile Retro */
-        #ui-layer {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0,0,0,0.4);
-            z-index: 100;
-        }
+/* ═══════════════════════════════════════════
+   SCHERMATA FINALE
+═══════════════════════════════════════════ */
+#winScreen{
+  position:absolute;inset:0;
+  background:rgba(0,0,0,0.96);
+  display:none;flex-direction:column;
+  align-items:center;justify-content:center;
+  z-index:80;gap:16px;
+}
+#winScreen.show{display:flex;}
+.win-trophy{font-size:58px;animation:trophyPop .6s cubic-bezier(.34,1.56,.64,1);}
+@keyframes trophyPop{from{transform:scale(0);}to{transform:scale(1);}}
+.win-title{font-size:14px;color:#f1c40f;text-align:center;line-height:2;text-shadow:0 0 20px #f1c40f;}
+.win-sub{font-size:6.5px;color:#8ab;text-align:center;line-height:2.2;max-width:520px;}
+#restartBtn{
+  background:transparent;border:2px solid #f1c40f;
+  color:#f1c40f;font-family:'Press Start 2P',monospace;
+  font-size:8px;padding:12px 28px;cursor:pointer;margin-top:8px;
+  transition:background .15s,color .15s;
+}
+#restartBtn:hover{background:#f1c40f;color:#000;}
 
-        .window {
-            background: #00429d;
-            border: 4px solid #fff;
-            box-shadow: 8px 8px 0px #000;
-            width: 600px;
-            padding: 20px;
-            position: relative;
-        }
-
-        .window-title {
-            background: #fff;
-            color: #00429d;
-            margin: -20px -20px 20px -20px;
-            padding: 10px;
-            font-size: 12px;
-            text-align: center;
-        }
-
-        .club-selection {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .club-btn {
-            background: #34495e;
-            border: 2px solid #fff;
-            color: #fff;
-            padding: 10px;
-            font-family: 'Press Start 2P';
-            font-size: 8px;
-            cursor: pointer;
-            text-align: left;
-        }
-
-        .club-btn:hover {
-            background: #f1c40f;
-            color: #000;
-        }
-
-        #challenge-text {
-            font-size: 10px;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
-
-        .input-area {
-            display: none;
-            margin-top: 10px;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            font-family: 'Press Start 2P';
-            font-size: 10px;
-            border: 2px solid #fff;
-            background: #000;
-            color: #2ecc71;
-            outline: none;
-        }
-
-        .hint {
-            font-size: 8px;
-            color: #f1c40f;
-            margin-top: 10px;
-        }
-
-        #feedback-overlay {
-            display: none;
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: #000;
-            border: 4px solid #2ecc71;
-            padding: 20px;
-            z-index: 200;
-            text-align: center;
-        }
-
-    </style>
+/* ═══════════════════════════════════════════
+   TRANSIZIONE AVANZAMENTO BUCA
+═══════════════════════════════════════════ */
+#holeTransition{
+  position:absolute;inset:0;
+  background:#000;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;
+  z-index:70;
+  opacity:0;pointer-events:none;
+  transition:opacity .4s;
+}
+#holeTransition.show{opacity:1;pointer-events:all;}
+.ht-line1{font-size:8px;color:#567;letter-spacing:2px;}
+.ht-line2{font-size:18px;color:#f1c40f;text-shadow:0 0 18px #f1c40f;}
+.ht-line3{font-size:7px;color:#2ecc71;}
+</style>
 </head>
 <body>
+<div id="game">
+  <canvas id="fieldCanvas"></canvas>
 
-    <div id="arcade-screen">
-        <div class="cloud" style="top: 50px; animation-delay: 0s;"></div>
-        <div class="cloud" style="top: 80px; animation-delay: -5s;"></div>
-        <div class="hill" style="width: 400px; height: 100px; bottom: 58%; left: -50px;"></div>
-        <div class="hill" style="width: 300px; height: 80px; bottom: 58%; right: -20px;"></div>
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-pill">BUCA: <span id="hudHole">1/4</span></div>
+    <div class="hud-center" id="hudTech">⛳ ZALLY GOLF CLUB</div>
+    <div class="hud-pill">VENTO <span id="windArrow">–</span> &nbsp;|&nbsp; SCORE <span id="hudScore">EVEN</span></div>
+  </div>
 
-        <div id="hud">
-            <div class="stat-box">
-                HOLE: 03 (MASTER)<br>
-                PAR: 4<br>
-                SHOT: <span id="shot-count">1</span>
-            </div>
-            <div class="stat-box" id="wind-meter">
-                WIND: 7m/s ↗<br>
-                POWER: <span id="power-val">0</span>%
-            </div>
-        </div>
-
-        <div id="zally-container">
-            <div id="zally-sprite"></div>
-        </div>
-        <div id="ball"></div>
-
-        <div id="ui-layer">
-            <div class="window" id="selection-window">
-                <div class="window-title">SCEGLI LA MAZZA (TECNICA PROMPTING)</div>
-                <div id="challenge-text">Zally è sul tee di partenza. Il task è complesso: configurare un assistente per l'audit inventariale che rispetti policy aziendali e bias. Quale tecnica serve per impostare la "postura" corretta?</div>
-                <div class="club-selection">
-                    <button class="club-btn" onclick="selectClub('Drive', 'Role-Playing Avanzato')">🏌️ DRIVER<br>(Role-Playing)</button>
-                    <button class="club-btn" onclick="selectClub('Iron', 'Context-Aware')">🏒 IRON<br>(Context)</button>
-                    <button class="club-btn" onclick="selectClub('Wedge', 'Negative Prompting')">📐 WEDGE<br>(Negative)</button>
-                    <button class="club-btn" onclick="selectClub('Putter', 'Meta-Prompting')">⛳ PUTTER<br>(Meta)</button>
-                </div>
-            </div>
-
-            <div class="window" id="challenge-window" style="display:none;">
-                <div class="window-title" id="challenge-title">CHALLENGE: ROLE-PLAYING</div>
-                <div id="specific-task">...</div>
-                <div class="input-area" style="display:block;">
-                    <input type="text" id="user-prompt" placeholder="SCRIVI QUI IL TUO PROMPT..." onkeydown="if(event.key==='Enter') hitBall()">
-                    <div class="hint">PREMI 'INVIO' PER COLPIRE LA PALLINA</div>
-                </div>
-            </div>
-        </div>
-
-        <div id="feedback-overlay">
-            <h2 id="feedback-title">OTTIMO COLPO!</h2>
-            <p id="feedback-desc" style="font-size: 10px; line-height: 1.5;"></p>
-            <button class="club-btn" onclick="nextChallenge()" style="margin-top: 10px; width: 100%; text-align: center;">PROSSIMO TIRO</button>
-        </div>
+  <!-- CHALLENGE PANEL -->
+  <div id="challengePanel">
+    <div class="challenge-header">
+      <span class="tech-badge" id="techBadge">ROLE-PLAYING</span>
+      <span class="hole-label" id="holeLabel">BUCA 1 · PAR 3</span>
     </div>
+    <div class="scenario" id="scenarioTxt"></div>
+    <div class="question" id="questionTxt"></div>
+    <div class="answers" id="answersGrid"></div>
+    <div id="inlineFB"></div>
+    <button id="nextBtn" onclick="onNextClick()">COLPISCI! ⛳</button>
+  </div>
 
-    <script>
-        const challenges = [
-            {
-                club: "Drive",
-                tech: "Role-Playing Avanzato",
-                task: "Definisci il ruolo di un 'Senior Inventory Auditor'. Deve essere ossessionato dai dati, non accettare scuse per i colli mancanti e seguire la policy 'Zero-Tolerance'.",
-                feedback: "Drive perfetto! Hai impostato la personalità dell'AI (System Instructions) garantendo coerenza in tutto il processo di audit."
-            },
-            {
-                club: "Iron",
-                tech: "Context-Aware Prompting",
-                task: "Siamo in Peak Season (Black Friday), i corrieri sono sovraccarichi. Spiega a Gemini questo scenario prima di chiedergli di ottimizzare i turni.",
-                feedback: "Fairway centrato! Fornendo il contesto (stagionalità e limiti), Gemini non darà soluzioni generiche ma calibrate sull'emergenza."
-            },
-            {
-                club: "Wedge",
-                tech: "Negative Prompting",
-                task: "Chiedi un report di magazzino vietando esplicitamente l'uso di gergo tecnico, acronimi e impedendo al modello di superare i 3 punti elenco.",
-                feedback: "Uscita dal bunker magistrale! I vincoli negativi puliscono l'output da informazioni inutili o complicate."
-            },
-            {
-                club: "Putter",
-                tech: "Meta-Prompting",
-                task: "Non sai come approcciare un problema di cross-docking. Chiedi a Gemini di farti 3 domande per costruire lui il prompt migliore per te.",
-                feedback: "BUCA IN UNO! Il Meta-Prompting trasforma Gemini nel tuo Prompt Engineer personale."
-            }
-        ];
+  <!-- POWER ZONE -->
+  <div id="powerZone">
+    <div id="powerInstruction">▶ PREMI SPAZIO o SWING per fermare la potenza!</div>
+    <div id="powerTrack">
+      <div id="sweetSpot"></div>
+      <div id="powerFill"></div>
+    </div>
+    <div class="power-labels"><span>CORTO</span><span>◀ ZONA IDEALE ▶</span><span>LUNGO</span></div>
+    <button id="swingBtn" onclick="stopPower()">SWING!</button>
+  </div>
 
-        let currentStep = 0;
-        let selectedClub = "";
+  <!-- SHOT BADGE -->
+  <div id="shotBadge"></div>
 
-        function selectClub(club, tech) {
-            selectedClub = tech;
-            document.getElementById('selection-window').style.display = 'none';
-            document.getElementById('challenge-window').style.display = 'block';
-            document.getElementById('challenge-title').innerText = `MAZZA: ${club} (${tech})`;
-            document.getElementById('specific-task').innerText = challenges[currentStep].task;
-            document.getElementById('user-prompt').focus();
-        }
+  <!-- HOLE TRANSITION -->
+  <div id="holeTransition">
+    <div class="ht-line1">PROSSIMA TECNICA</div>
+    <div class="ht-line2" id="htTech"></div>
+    <div class="ht-line3" id="htSub"></div>
+  </div>
 
-        function hitBall() {
-            const userPrompt = document.getElementById('user-prompt').value;
-            if (userPrompt.length < 5) return;
+  <!-- WIN SCREEN -->
+  <div id="winScreen">
+    <div class="win-trophy">🏆</div>
+    <div class="win-title">CAMPIONATO COMPLETATO!</div>
+    <div class="win-sub" id="winSub"></div>
+    <button id="restartBtn" onclick="restartGame()">GIOCA ANCORA</button>
+  </div>
+</div>
 
-            // Animazione Colpo
-            document.getElementById('challenge-window').style.display = 'none';
-            document.getElementById('ui-layer').style.background = 'transparent';
-            
-            // Zally 'colpisce' (piccolo movimento)
-            document.getElementById('zally-container').style.transform = 'translateX(10px) rotate(-5deg)';
-            
-            // La pallina vola via (prospettiva)
-            const ball = document.getElementById('ball');
-            ball.style.left = "400px";
-            ball.style.bottom = "300px";
-            ball.style.transform = "scale(0.2)";
-            ball.style.opacity = "0";
+<script>
+/* ════════════════════════════════════════════════════════
+   DATA
+════════════════════════════════════════════════════════ */
+const HOLES = [
+  {
+    id:1, par:3,
+    tech:"ROLE-PLAYING", icon:"🎭", color:"#e74c3c",
+    wind:{spd:5, label:"5 m/s →", dx:1},
+    scenario:"Il CEO chiede un'analisi critica del Q3. Hai bisogno che Gemini si comporti da consulente senior severo, non da assistente che annuisce a tutto.",
+    question:"Quale prompt usa correttamente il ROLE-PLAYING?",
+    answers:[
+      {t:"Analizza i risultati del Q3 e dimmi cosa pensi.", ok:false, w:"Nessun ruolo: Gemini risponderà in modo generico e accomodante."},
+      {t:"Agisci come un CFO con 20 anni di esperienza. Analizza il Q3 con occhio critico: identifica le 3 maggiori inefficienze e proponi azioni correttive.", ok:true, w:"Ruolo preciso + stile + compito = risposta calibrata come un vero esperto."},
+      {t:"Sei un assistente. Guarda il Q3 e fai un riassunto.", ok:false, w:"'Assistente' non è un ruolo specifico. Mancano stile e vincoli comportamentali."},
+      {t:"Dammi un'analisi professionale e dettagliata del Q3.", ok:false, w:"'Professionale' è vago. Nessuna persona/ruolo con cui Gemini possa identificarsi."}
+    ],
+    feedback:"Il ROLE-PLAYING imposta le System Instructions: definendo persona, stile e vincoli, ogni risposta sarà coerente. È come avere un esperto dedicato nel team."
+  },
+  {
+    id:2, par:3,
+    tech:"CONTEXT-AWARE", icon:"🌍", color:"#3498db",
+    wind:{spd:12, label:"12 m/s ↗", dx:0.7},
+    scenario:"Black Friday tra 48h. 12 corrieri bloccati, 3 hub offline. Hai bisogno di ottimizzare i turni — senza contesto, Gemini darà soluzioni da manuale, non da emergenza.",
+    question:"Quale prompt fornisce il CONTESTO operativo corretto?",
+    answers:[
+      {t:"Come ottimizzare i turni di magazzino durante il Black Friday?", ok:false, w:"Domanda generica senza contesto: ottieni consigli standard che trovi su Google."},
+      {t:"Ottimizza i turni. Abbiamo poco personale e molto lavoro.", ok:false, w:"'Poco personale, molto lavoro' è troppo vago per calibrare la risposta."},
+      {t:"Siamo a 48h dal Black Friday. 12 corrieri assenti, hub Milano e Roma offline. 340 ordini prioritari da smistare. Con questi vincoli, come ottimizzare i turni per minimizzare i ritardi?", ok:true, w:"Contesto temporale + vincoli reali + numeri = risposta sull'emergenza, non sul manuale."},
+      {t:"È un periodo di picco. Cosa faccio con i turni?", ok:false, w:"'Periodo di picco' non dice nulla sui vincoli specifici. Risposta troppo generica."}
+    ],
+    feedback:"Il CONTEXT-AWARE Prompting trasforma domande generiche in richieste su misura. Gemini non è telepatico: i dettagli del tuo contesto sono il suo brief di progetto."
+  },
+  {
+    id:3, par:4,
+    tech:"NEGATIVE PROMPTING", icon:"🚫", color:"#e67e22",
+    wind:{spd:8, label:"8 m/s ↙", dx:-0.5},
+    scenario:"Serve un report magazzino leggibile da un manager non tecnico. Gemini di default usa gergo, acronimi e fa output interminabili — devi fermare quei comportamenti.",
+    question:"Quale prompt usa meglio il NEGATIVE PROMPTING?",
+    answers:[
+      {t:"Scrivi un report di magazzino semplice e chiaro, senza cose complicate.", ok:false, w:"'Senza cose complicate' è soggettivo. Gemini non sa cosa intendi."},
+      {t:"Fai un report magazzino. Tienilo breve.", ok:false, w:"'Breve' è vago: quanto breve? Gemini interpreterà a modo suo."},
+      {t:"Scrivi un report sullo stato del magazzino. NON usare acronimi. NON includere dati grezzi. NON superare 5 punti. Ogni punto max 2 righe.", ok:true, w:"Tre divieti espliciti + limite quantitativo = output pulito e prevedibile ogni volta."},
+      {t:"Scrivi un report professionale e conciso per il management.", ok:false, w:"'Professionale e conciso' sono valutazioni qualitative: ogni AI le interpreta diversamente."}
+    ],
+    feedback:"Il NEGATIVE PROMPTING è chirurgico: 'NON fare X' è spesso più potente di 'fai Y'. Definisce i confini dell'output e disattiva i comportamenti di default che non servono."
+  },
+  {
+    id:4, par:3,
+    tech:"META-PROMPTING", icon:"🧠", color:"#9b59b6",
+    wind:{spd:3, label:"3 m/s ↓", dx:0},
+    scenario:"Devi automatizzare un processo di cross-docking complesso ma non sai da dove iniziare. Non conosci nemmeno le domande giuste da fare.",
+    question:"Qual è la mossa da Meta-Prompting master?",
+    answers:[
+      {t:"Spiegami il cross-docking e come automatizzarlo.", ok:false, w:"Ottieni teoria generica, non un piano operativo per la tua situazione specifica."},
+      {t:"Prima di rispondermi, fammi 5 domande per capire il mio processo, poi costruisci il prompt ideale per aiutarmi ad automatizzarlo.", ok:true, w:"Usi Gemini come Prompt Engineer: ti fa le domande giuste prima di rispondere."},
+      {t:"Come posso migliorare il mio processo logistico?", ok:false, w:"Troppo generico. Ottieni best practice universali, non la tua soluzione."},
+      {t:"Dammi 10 consigli per il cross-docking.", ok:false, w:"Lista standard. Nessun adattamento al tuo contesto specifico."}
+    ],
+    feedback:"Il META-PROMPTING trasforma Gemini nel tuo Prompt Engineer personale. Invece di cercare la domanda perfetta, chiedi a Gemini di trovarla per te."
+  }
+];
 
-            setTimeout(() => {
-                showFeedback();
-            }, 1600);
-        }
+/* ════════════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════════════ */
+let holeIdx = 0;
+let totalScore = 0;
+let scoreArr = [];
+let answered = false;
+let correctChosen = false;
+let phase = "challenge"; // challenge | power | flight | result | transition
+let power = 0, powerDir = 1, powerRunning = false, powerRaf = null;
 
-        function showFeedback() {
-            const feedback = document.getElementById('feedback-overlay');
-            document.getElementById('feedback-desc').innerText = challenges[currentStep].feedback;
-            feedback.style.display = 'block';
-        }
+// Ball physics
+let bx = 0, by = 0, bvx = 0, bvy = 0;
+let ballVisible = false;
+let trail = [];
 
-        function nextChallenge() {
-            currentStep++;
-            if (currentStep < challenges.length) {
-                // Reset Pallina e UI
-                const ball = document.getElementById('ball');
-                ball.style.left = "180px";
-                ball.style.bottom = "50px";
-                ball.style.transform = "scale(1)";
-                ball.style.opacity = "1";
-                document.getElementById('zally-container').style.transform = 'none';
-                document.getElementById('user-prompt').value = "";
-                document.getElementById('shot-count').innerText = currentStep + 1;
-                
-                document.getElementById('feedback-overlay').style.display = 'none';
-                document.getElementById('ui-layer').style.background = 'rgba(0,0,0,0.4)';
-                document.getElementById('selection-window').style.display = 'block';
-                document.getElementById('challenge-window').style.display = 'none';
-            } else {
-                alert("CAMPIONATO FINITO! ZALLY È UN MASTER PROMPTER!");
-                location.reload();
-            }
-        }
-    </script>
+// Animation
+let cloudOffset = 0;
+let frameCount = 0;
+let zallyState = "idle"; // idle | backswing | swing | follow
+
+// Canvas
+const canvas = document.getElementById('fieldCanvas');
+const ctx = canvas.getContext('2d');
+let W = 900, H = 580;
+
+/* ════════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════════ */
+function init() {
+  canvas.width = W;
+  canvas.height = H;
+  loadHole(0);
+  requestAnimationFrame(loop);
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space') { e.preventDefault(); stopPower(); }
+  });
+}
+
+/* ════════════════════════════════════════════════════════
+   LOAD HOLE
+════════════════════════════════════════════════════════ */
+function loadHole(idx) {
+  holeIdx = idx;
+  answered = false;
+  correctChosen = false;
+  ballVisible = false;
+  trail = [];
+  zallyState = "idle";
+  phase = "challenge";
+
+  const h = HOLES[idx];
+
+  // HUD
+  document.getElementById('hudHole').textContent = `${h.id}/4`;
+  document.getElementById('hudTech').textContent = `${h.icon} ${h.tech}`;
+  document.getElementById('windArrow').textContent = h.wind.label;
+  updateScoreHUD();
+
+  // Challenge panel
+  document.getElementById('techBadge').textContent = h.tech;
+  document.getElementById('techBadge').style.color = h.color;
+  document.getElementById('techBadge').style.borderColor = h.color;
+  document.getElementById('holeLabel').textContent = `BUCA ${h.id} · PAR ${h.par}`;
+  document.getElementById('scenarioTxt').textContent = h.scenario;
+  document.getElementById('questionTxt').textContent = h.question;
+
+  // Answers
+  const grid = document.getElementById('answersGrid');
+  grid.innerHTML = '';
+  // shuffle
+  const shuffled = [...h.answers].sort(() => Math.random() - 0.5);
+  shuffled.forEach((a, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'ans';
+    btn.textContent = a.t;
+    btn.onclick = () => selectAnswer(a);
+    grid.appendChild(btn);
+  });
+
+  document.getElementById('inlineFB').style.display = 'none';
+  document.getElementById('nextBtn').style.display = 'none';
+  document.getElementById('challengePanel').classList.remove('hidden');
+  document.getElementById('powerZone').style.display = 'none';
+  document.getElementById('shotBadge').classList.remove('show');
+  document.getElementById('holeTransition').classList.remove('show');
+}
+
+/* ════════════════════════════════════════════════════════
+   ANSWER SELECTION
+════════════════════════════════════════════════════════ */
+function selectAnswer(chosen) {
+  if (answered) return;
+  answered = true;
+  correctChosen = chosen.ok;
+
+  const btns = document.querySelectorAll('.ans');
+  const h = HOLES[holeIdx];
+  btns.forEach(btn => {
+    const match = h.answers.find(a => a.t === btn.textContent);
+    if (!match) return;
+    btn.classList.add(match.ok ? 'correct' : 'dimmed');
+    if (match === chosen && !chosen.ok) btn.classList.replace('dimmed', 'wrong');
+  });
+
+  const fb = document.getElementById('inlineFB');
+  fb.style.display = 'block';
+  fb.className = correctChosen ? '' : 'bad';
+  fb.textContent = (correctChosen ? '✅ CORRETTO! ' : '❌ SBAGLIATO! ') + chosen.w;
+
+  document.getElementById('nextBtn').style.display = 'block';
+  document.getElementById('nextBtn').textContent = correctChosen
+    ? 'PERFETTO — COLPISCI! ⛳'
+    : 'VAI COMUNQUE AL TEE →';
+}
+
+/* ════════════════════════════════════════════════════════
+   NEXT CLICK → go to power
+════════════════════════════════════════════════════════ */
+function onNextClick() {
+  document.getElementById('challengePanel').classList.add('hidden');
+  document.getElementById('powerZone').style.display = 'flex';
+  phase = 'power';
+  power = 0; powerDir = 1; powerRunning = true;
+  runPower();
+}
+
+function runPower() {
+  if (!powerRunning) return;
+  power += powerDir * 1.8;
+  if (power >= 100) { power = 100; powerDir = -1; }
+  if (power <= 0) { power = 0; powerDir = 1; }
+  document.getElementById('powerFill').style.width = power + '%';
+  powerRaf = requestAnimationFrame(runPower);
+}
+
+function stopPower() {
+  if (phase !== 'power') return;
+  powerRunning = false;
+  cancelAnimationFrame(powerRaf);
+  document.getElementById('powerZone').style.display = 'none';
+  phase = 'flight';
+  launchBall(power);
+  playSwingSound();
+  animateZallySwing();
+}
+
+/* ════════════════════════════════════════════════════════
+   BALL LAUNCH
+════════════════════════════════════════════════════════ */
+function launchBall(pw) {
+  ballVisible = true;
+  trail = [];
+  const h = HOLES[holeIdx];
+
+  // Palla parte da Zally (in basso a sx in prospettiva)
+  bx = W * 0.16;
+  by = H * 0.76;
+
+  // Tiro verso il green (in prospettiva: vola verso alto-centro/destra)
+  const windFactor = h.wind.dx * h.wind.spd * 0.009;
+  const spd = 4.2 + (pw / 100) * 7.5;
+  const angleRad = (55 - pw * 0.15) * Math.PI / 180;
+
+  bvx = Math.cos(angleRad) * spd * 0.85 + windFactor;
+  bvy = -Math.sin(angleRad) * spd;
+}
+
+/* ════════════════════════════════════════════════════════
+   ZALLY SWING ANIMATION
+════════════════════════════════════════════════════════ */
+function animateZallySwing() {
+  zallyState = 'backswing';
+  setTimeout(() => { zallyState = 'swing'; }, 150);
+  setTimeout(() => { zallyState = 'follow'; }, 350);
+  setTimeout(() => { zallyState = 'idle'; }, 900);
+}
+
+/* ════════════════════════════════════════════════════════
+   MAIN GAME LOOP
+════════════════════════════════════════════════════════ */
+function loop() {
+  frameCount++;
+  cloudOffset += 0.22;
+
+  drawScene();
+
+  if (phase === 'flight') updateBall();
+
+  requestAnimationFrame(loop);
+}
+
+/* ════════════════════════════════════════════════════════
+   BALL UPDATE
+════════════════════════════════════════════════════════ */
+function updateBall() {
+  bvy += 0.17; // gravity
+  bx += bvx;
+  by += bvy;
+
+  trail.push({ x: bx, y: by });
+  if (trail.length > 28) trail.shift();
+
+  // La palla "atterra" quando scende sotto la linea del fairway
+  // In prospettiva, la ground line varia con x
+  const groundY = perspGround(bx);
+  if (by >= groundY) {
+    by = groundY;
+    ballVisible = true;
+    phase = 'result';
+    playLandSound();
+    setTimeout(showResult, 500);
+  }
+
+  // Out of bounds laterale
+  if (bx > W + 80 || bx < -80) {
+    phase = 'result';
+    setTimeout(showResult, 200);
+  }
+}
+
+// Linea del suolo in prospettiva: vicino = in basso, lontano = in alto
+function perspGround(x) {
+  const t = Math.max(0, Math.min(1, (x - W * 0.12) / (W * 0.65)));
+  return H * 0.795 - t * (H * 0.285);
+}
+
+/* ════════════════════════════════════════════════════════
+   SHOW RESULT
+════════════════════════════════════════════════════════ */
+function showResult() {
+  const h = HOLES[holeIdx];
+  // Target: green al centro-destra, in prospettiva
+  const flagScreenX = W * 0.72;
+  const dist = Math.abs(bx - flagScreenX);
+
+  let label, delta;
+  if (!correctChosen) {
+    label = "BOGEY +1 💨"; delta = 1;
+  } else if (dist < W * 0.05) {
+    label = "HOLE IN ONE! ⭐"; delta = -2;
+  } else if (dist < W * 0.11) {
+    label = "EAGLE -2 🦅"; delta = -1;
+  } else if (dist < W * 0.20) {
+    label = "BIRDIE -1 🐦"; delta = 0;
+  } else {
+    label = "PAR ⛳"; delta = 0;
+  }
+
+  totalScore += delta;
+  scoreArr.push({ hole: h.id, delta });
+  updateScoreHUD();
+
+  const badge = document.getElementById('shotBadge');
+  badge.textContent = label;
+  badge.classList.add('show');
+  playResultSound(delta);
+  spawnStars(delta <= -1 ? 5 : 2);
+
+  setTimeout(() => {
+    badge.classList.remove('show');
+
+    if (holeIdx >= HOLES.length - 1) {
+      // Fine campionato
+      setTimeout(showWinScreen, 400);
+    } else {
+      // Transizione alla prossima buca
+      showHoleTransition();
+    }
+  }, 2200);
+}
+
+/* ════════════════════════════════════════════════════════
+   HOLE TRANSITION SCREEN
+════════════════════════════════════════════════════════ */
+function showHoleTransition() {
+  const next = HOLES[holeIdx + 1];
+  const ht = document.getElementById('holeTransition');
+  document.getElementById('htTech').textContent = next.icon + ' ' + next.tech;
+  document.getElementById('htTech').style.color = next.color;
+  document.getElementById('htSub').textContent = `BUCA ${next.id} — PAR ${next.par}`;
+  ht.classList.add('show');
+  setTimeout(() => {
+    ht.classList.remove('show');
+    loadHole(holeIdx + 1);
+  }, 2400);
+}
+
+/* ════════════════════════════════════════════════════════
+   WIN SCREEN
+════════════════════════════════════════════════════════ */
+function showWinScreen() {
+  document.getElementById('winScreen').classList.add('show');
+  const sc = totalScore === 0 ? 'EVEN'
+    : totalScore < 0 ? `-${Math.abs(totalScore)}`
+    : `+${totalScore}`;
+  const details = scoreArr.map(s =>
+    `B${s.hole}: ${s.delta < 0 ? s.delta : s.delta === 0 ? 'PAR' : '+' + s.delta}`
+  ).join('  ·  ');
+  document.getElementById('winSub').innerHTML =
+    `Score finale: ${sc}<br>${details}<br><br>Hai padroneggiato 4 tecniche di Prompt Engineering su Gemini.<br>Ora applicale nel tuo lavoro quotidiano su Google Workspace!`;
+  playVictorySound();
+}
+
+function restartGame() {
+  totalScore = 0; scoreArr = [];
+  document.getElementById('winScreen').classList.remove('show');
+  loadHole(0);
+}
+
+function updateScoreHUD() {
+  const el = document.getElementById('hudScore');
+  if (totalScore === 0) { el.textContent = 'EVEN'; el.style.color = '#2ecc71'; }
+  else if (totalScore < 0) { el.textContent = `-${Math.abs(totalScore)}`; el.style.color = '#f1c40f'; }
+  else { el.textContent = `+${totalScore}`; el.style.color = '#e74c3c'; }
+}
+
+/* ════════════════════════════════════════════════════════
+   DRAW SCENE
+════════════════════════════════════════════════════════ */
+function drawScene() {
+  const h = HOLES[holeIdx];
+  ctx.clearRect(0, 0, W, H);
+  drawSky();
+  drawSun();
+  drawClouds();
+  drawDistantTrees();
+  drawFairway3D();
+  drawBunkers3D();
+  drawRough3D();
+  drawGreen3D(h);
+  drawFlagPin3D(h);
+  drawShadow3D();
+  drawTeeBox();
+  if (ballVisible) drawBallTrail();
+  if (ballVisible) drawBall3D();
+  drawZally3D(h);
+}
+
+/* ── SKY ── */
+function drawSky() {
+  const g = ctx.createLinearGradient(0, 0, 0, H * 0.52);
+  g.addColorStop(0, '#0d2035');
+  g.addColorStop(0.5, '#1a4a7a');
+  g.addColorStop(1, '#3a7ab5');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H * 0.52);
+}
+
+function drawSun() {
+  const sx = W * 0.82, sy = H * 0.12;
+  // Corona
+  const cg = ctx.createRadialGradient(sx, sy, 4, sx, sy, 55);
+  cg.addColorStop(0, 'rgba(255,240,160,0.22)');
+  cg.addColorStop(1, 'rgba(255,200,60,0)');
+  ctx.fillStyle = cg;
+  ctx.beginPath(); ctx.arc(sx, sy, 55, 0, Math.PI * 2); ctx.fill();
+  // Sole
+  ctx.fillStyle = '#ffe87a';
+  ctx.beginPath(); ctx.arc(sx, sy, 18, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#fff9cc';
+  ctx.beginPath(); ctx.arc(sx - 4, sy - 4, 7, 0, Math.PI * 2); ctx.fill();
+}
+
+/* ── CLOUDS ── */
+function drawClouds() {
+  const defs = [
+    { bx: 60, y: H * 0.10, w: 120, h: 32 },
+    { bx: 260, y: H * 0.07, w: 90, h: 24 },
+    { bx: 440, y: H * 0.12, w: 140, h: 36 },
+    { bx: 680, y: H * 0.08, w: 100, h: 28 },
+    { bx: 850, y: H * 0.14, w: 80, h: 22 },
+  ];
+  ctx.fillStyle = 'rgba(255,255,255,0.88)';
+  defs.forEach(c => {
+    const ox = ((c.bx + cloudOffset * 0.35) % (W + 200)) - 100;
+    drawCloud(ox, c.y, c.w, c.h);
+  });
+}
+
+function drawCloud(x, y, w, h) {
+  ctx.beginPath();
+  ctx.ellipse(x, y, w * 0.44, h * 0.55, 0, 0, Math.PI * 2);
+  ctx.ellipse(x - w * 0.22, y + h * 0.2, w * 0.3, h * 0.45, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + w * 0.24, y + h * 0.16, w * 0.28, h * 0.42, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/* ── DISTANT TREES ── */
+function drawDistantTrees() {
+  const horizon = H * 0.505;
+  // Treeline sinistra
+  ctx.fillStyle = '#0d3a1a';
+  for (let i = 0; i < 14; i++) {
+    const tx = i * 42 - 10;
+    const th = 28 + Math.sin(i * 2.3) * 12;
+    ctx.beginPath();
+    ctx.moveTo(tx, horizon);
+    ctx.lineTo(tx + 21, horizon - th);
+    ctx.lineTo(tx + 42, horizon);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#0a2a12';
+  for (let i = 0; i < 8; i++) {
+    const tx = i * 60 + 5;
+    const th = 20 + Math.cos(i * 1.7) * 8;
+    ctx.beginPath();
+    ctx.moveTo(tx, horizon);
+    ctx.lineTo(tx + 18, horizon - th);
+    ctx.lineTo(tx + 36, horizon);
+    ctx.fill();
+  }
+  // Treeline destra
+  ctx.fillStyle = '#0d3a1a';
+  for (let i = 0; i < 10; i++) {
+    const tx = W - i * 50 - 10;
+    const th = 24 + Math.sin(i * 1.9) * 10;
+    ctx.beginPath();
+    ctx.moveTo(tx, horizon);
+    ctx.lineTo(tx - 18, horizon - th);
+    ctx.lineTo(tx - 36, horizon);
+    ctx.fill();
+  }
+}
+
+/* ── FAIRWAY 3D ── */
+function drawFairway3D() {
+  const horizon = H * 0.505;
+
+  // Rough totale
+  const rg = ctx.createLinearGradient(0, horizon, 0, H);
+  rg.addColorStop(0, '#1a5c28');
+  rg.addColorStop(1, '#0e3316');
+  ctx.fillStyle = rg;
+  ctx.fillRect(0, horizon, W, H - horizon);
+
+  // Fairway corridoio in prospettiva
+  // Il fairway si restringe verso l'orizzonte
+  const fwTopL = W * 0.32, fwTopR = W * 0.68; // larghezza all'orizzonte
+  const fwBotL = W * 0.02, fwBotR = W * 0.98;  // larghezza in primo piano (tutta la scena)
+
+  // Strisce alternanti (effetto tosaerba prospettico)
+  const nStripes = 12;
+  const col1 = '#27ae60', col2 = '#2ecc71';
+  for (let i = 0; i < nStripes; i++) {
+    const t0 = i / nStripes, t1 = (i + 1) / nStripes;
+    const y0 = horizon + (H - horizon) * t0;
+    const y1 = horizon + (H - horizon) * t1;
+    const l0 = fwBotL + (fwTopL - fwBotL) * t0;
+    const r0 = fwBotR + (fwTopR - fwBotR) * t0;
+    const l1 = fwBotL + (fwTopL - fwBotL) * t1;
+    const r1 = fwBotR + (fwTopR - fwBotR) * t1;
+    ctx.fillStyle = i % 2 === 0 ? col1 : col2;
+    ctx.beginPath();
+    ctx.moveTo(l0, y0); ctx.lineTo(r0, y0);
+    ctx.lineTo(r1, y1); ctx.lineTo(l1, y1);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // Ombra dei bordi del fairway (rough laterale che si vede)
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  // Sinistra
+  ctx.beginPath();
+  ctx.moveTo(0, horizon); ctx.lineTo(fwTopL, horizon);
+  ctx.lineTo(fwBotL, H); ctx.lineTo(0, H);
+  ctx.closePath(); ctx.fill();
+  // Destra
+  ctx.beginPath();
+  ctx.moveTo(W, horizon); ctx.lineTo(fwTopR, horizon);
+  ctx.lineTo(fwBotR, H); ctx.lineTo(W, H);
+  ctx.closePath(); ctx.fill();
+
+  // Linee di prospettiva (guide visive)
+  ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 5; i++) {
+    const t = i / 5;
+    const lx = fwBotL + (fwTopL - fwBotL) * t;
+    const rx = fwBotR + (fwTopR - fwBotR) * t;
+    const y = horizon + (H - horizon) * t;
+    ctx.beginPath(); ctx.moveTo(lx, y); ctx.lineTo(rx, y); ctx.stroke();
+  }
+  // Linee laterali convergenti
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(fwBotL, H); ctx.lineTo(fwTopL, horizon); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(fwBotR, H); ctx.lineTo(fwTopR, horizon); ctx.stroke();
+}
+
+/* ── BUNKERS 3D ── */
+function drawBunkers3D() {
+  const horizon = H * 0.505;
+  // Bunker sinistro (zona mid)
+  ctx.fillStyle = '#c8a96e';
+  ctx.beginPath();
+  ctx.ellipse(W * 0.28, H * 0.66, 42, 14, 0.1, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#a88040'; ctx.lineWidth = 1.5; ctx.stroke();
+  // Dettaglio sabbia
+  ctx.fillStyle = '#d4b87a';
+  ctx.beginPath();
+  ctx.ellipse(W * 0.28, H * 0.655, 30, 9, 0.05, 0, Math.PI * 2); ctx.fill();
+
+  // Bunker destro
+  ctx.fillStyle = '#c8a96e';
+  ctx.beginPath();
+  ctx.ellipse(W * 0.62, H * 0.635, 36, 12, -0.1, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#a88040'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.fillStyle = '#d4b87a';
+  ctx.beginPath();
+  ctx.ellipse(W * 0.62, H * 0.63, 26, 8, -0.05, 0, Math.PI * 2); ctx.fill();
+}
+
+/* ── ROUGH LATERALE 3D ── */
+function drawRough3D() {
+  // Ciuffi d'erba alta ai lati del fairway
+  ctx.fillStyle = '#155a1e';
+  for (let i = 0; i < 18; i++) {
+    const t = i / 18;
+    const y = H * 0.51 + (H * 0.49) * t;
+    const xL = W * 0.02 + (W * 0.32 - W * 0.02) * t - 10 + Math.sin(i * 5.1) * 8;
+    const xR = W * 0.98 - (W * 0.98 - W * 0.68) * t + 10 - Math.sin(i * 4.3) * 8;
+    const sz = 4 + t * 8;
+    ctx.beginPath(); ctx.moveTo(xL, y); ctx.lineTo(xL - sz * 0.6, y - sz * 1.5); ctx.lineTo(xL + sz * 0.6, y - sz * 1.5); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(xR, y); ctx.lineTo(xR - sz * 0.6, y - sz * 1.5); ctx.lineTo(xR + sz * 0.6, y - sz * 1.5); ctx.closePath(); ctx.fill();
+  }
+}
+
+/* ── GREEN 3D ── */
+function drawGreen3D(h) {
+  const gx = W * 0.50, gy = H * 0.565;
+
+  // Ombra sotto il green
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(gx, gy + 8, 72, 18, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Green
+  const gg = ctx.createRadialGradient(gx - 10, gy - 8, 4, gx, gy, 62);
+  gg.addColorStop(0, '#3dda7a');
+  gg.addColorStop(0.6, '#2ecc68');
+  gg.addColorStop(1, '#1aaa4a');
+  ctx.fillStyle = gg;
+  ctx.beginPath();
+  ctx.ellipse(gx, gy, 68, 20, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Bordo green
+  ctx.strokeStyle = '#1a8a3a'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(gx, gy, 68, 20, 0, 0, Math.PI * 2); ctx.stroke();
+
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.beginPath();
+  ctx.ellipse(gx - 12, gy - 6, 28, 7, -0.3, 0, Math.PI * 2); ctx.fill();
+
+  // Buca
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(W * 0.72, gy + 2, 7, 3, 0, 0, Math.PI * 2); ctx.fill();
+}
+
+/* ── FLAG PIN 3D ── */
+function drawFlagPin3D(h) {
+  const fx = W * 0.72, fy = H * 0.565;
+
+  // Ombra asta
+  ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(fx + 3, fy); ctx.lineTo(fx + 8, fy - 60); ctx.stroke();
+
+  // Asta
+  ctx.strokeStyle = '#ddd'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy - 64); ctx.stroke();
+
+  // Bandiera
+  ctx.fillStyle = h.color;
+  ctx.beginPath();
+  ctx.moveTo(fx, fy - 64);
+  ctx.lineTo(fx + 30, fy - 53);
+  ctx.lineTo(fx, fy - 42);
+  ctx.closePath(); ctx.fill();
+  // Bordo bandiera
+  ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Testo/icona sulla bandiera
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.font = '13px serif';
+  ctx.fillText(h.icon, fx + 5, fy - 50);
+
+  // Numero buca
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(fx - 8, fy + 3, 16, 5);
+  ctx.fillStyle = '#fff';
+  ctx.font = '5px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(`B${h.id}`, fx, fy + 8);
+  ctx.textAlign = 'left';
+}
+
+/* ── SHADOW GROUND ── */
+function drawShadow3D() {
+  // Gradiente di profondità sul fairway
+  const sg = ctx.createLinearGradient(0, H * 0.50, 0, H);
+  sg.addColorStop(0, 'rgba(0,0,0,0)');
+  sg.addColorStop(1, 'rgba(0,0,0,0.22)');
+  ctx.fillStyle = sg;
+  ctx.fillRect(0, H * 0.50, W, H * 0.50);
+}
+
+/* ── TEE BOX ── */
+function drawTeeBox() {
+  const tx = W * 0.16, ty = H * 0.80;
+  // Piattaforma
+  ctx.fillStyle = '#33da6e';
+  ctx.beginPath(); ctx.ellipse(tx, ty, 52, 16, -0.05, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(tx, ty, 52, 16, -0.05, 0, Math.PI * 2); ctx.stroke();
+  // Marcatori bianchi
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(tx - 38, ty - 4, 5, 8);
+  ctx.fillRect(tx + 33, ty - 4, 5, 8);
+  // Tee (bastoncino)
+  ctx.strokeStyle = '#f5c842'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(tx + 26, ty - 4); ctx.lineTo(tx + 26, ty - 14); ctx.stroke();
+  ctx.fillStyle = '#f5c842';
+  ctx.beginPath(); ctx.arc(tx + 26, ty - 14, 3, 0, Math.PI * 2); ctx.fill();
+}
+
+/* ── BALL TRAIL ── */
+function drawBallTrail() {
+  trail.forEach((p, i) => {
+    const alpha = (i / trail.length) * 0.55;
+    const r = 1.5 + (i / trail.length) * 2;
+    ctx.fillStyle = `rgba(255,240,80,${alpha})`;
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
+  });
+}
+
+/* ── BALL 3D ── */
+function drawBall3D() {
+  const distFactor = Math.max(0.3, 1 - (by - H * 0.51) / (H * 0.30) * 0.7);
+  const r = Math.max(2.5, 7 * distFactor);
+
+  // Ombra sotto la palla
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(bx, perspGround(bx) + 2, r * 1.4, r * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Palla
+  const bg = ctx.createRadialGradient(bx - r * 0.25, by - r * 0.3, r * 0.1, bx, by, r);
+  bg.addColorStop(0, '#fff');
+  bg.addColorStop(0.5, '#e8e8e8');
+  bg.addColorStop(1, '#b0b0b0');
+  ctx.fillStyle = bg;
+  ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.fill();
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.beginPath(); ctx.arc(bx - r * 0.25, by - r * 0.28, r * 0.3, 0, Math.PI * 2); ctx.fill();
+}
+
+/* ════════════════════════════════════════════════════════
+   ZALLY 3D — pixel art procedurale
+════════════════════════════════════════════════════════ */
+function drawZally3D(h) {
+  const zx = W * 0.12, zy = H * 0.80;
+
+  ctx.save();
+  ctx.translate(zx, zy);
+
+  // ── Ombra ──
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.beginPath(); ctx.ellipse(12, 4, 26, 8, 0, 0, Math.PI * 2); ctx.fill();
+
+  // ── Scarpe ──
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath(); ctx.roundRect(-6, 70, 14, 8, 2); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(16, 70, 14, 8, 2); ctx.fill();
+  // suola
+  ctx.fillStyle = '#e74c3c';
+  ctx.fillRect(-7, 76, 15, 3);
+  ctx.fillRect(15, 76, 15, 3);
+
+  // ── Gambe ──
+  ctx.fillStyle = '#2c3e50';
+  ctx.beginPath(); ctx.roundRect(-4, 46, 13, 28, 2); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(15, 46, 13, 28, 2); ctx.fill();
+  // piega ginocchio
+  ctx.fillStyle = '#243342';
+  ctx.fillRect(-3, 60, 12, 4);
+  ctx.fillRect(16, 60, 12, 4);
+
+  // ── Corpo ──
+  const bodyG = ctx.createLinearGradient(0, 18, 30, 58);
+  bodyG.addColorStop(0, '#e74c3c');
+  bodyG.addColorStop(0.4, '#c0392b');
+  bodyG.addColorStop(1, '#962d22');
+  ctx.fillStyle = bodyG;
+  ctx.beginPath(); ctx.roundRect(0, 18, 28, 30, 3); ctx.fill();
+
+  // Logo Z sul petto
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.font = 'bold 10px monospace';
+  ctx.fillText('Z', 10, 36);
+
+  // cintura
+  ctx.fillStyle = '#1a252f';
+  ctx.fillRect(0, 44, 28, 4);
+  // fibbia
+  ctx.fillStyle = '#f1c40f';
+  ctx.fillRect(10, 44, 8, 4);
+
+  // ── Braccia & Mazza ──
+  if (zallyState === 'backswing') {
+    // Braccio SX su, mazza dietro
+    ctx.fillStyle = '#f9c49a'; ctx.beginPath(); ctx.roundRect(-10, 20, 10, 22, 2); ctx.fill();
+    ctx.fillStyle = '#f9c49a'; ctx.beginPath(); ctx.roundRect(28, 30, 10, 18, 2); ctx.fill();
+    ctx.save(); ctx.translate(-10, 18); ctx.rotate(-1.4);
+    ctx.strokeStyle = '#888'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 48); ctx.stroke();
+    ctx.fillStyle = '#555'; ctx.beginPath(); ctx.roundRect(-4, 45, 10, 7, 1); ctx.fill();
+    ctx.restore();
+  } else if (zallyState === 'swing' || zallyState === 'follow') {
+    ctx.fillStyle = '#f9c49a'; ctx.beginPath(); ctx.roundRect(-10, 26, 10, 20, 2); ctx.fill();
+    ctx.fillStyle = '#f9c49a'; ctx.beginPath(); ctx.roundRect(28, 22, 10, 20, 2); ctx.fill();
+    ctx.save(); ctx.translate(35, 20); ctx.rotate(0.5);
+    ctx.strokeStyle = '#888'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 52); ctx.stroke();
+    ctx.fillStyle = '#555'; ctx.beginPath(); ctx.roundRect(-4, 49, 10, 7, 1); ctx.fill();
+    ctx.restore();
+    // Effetto swing
+    if (zallyState === 'swing') {
+      ctx.strokeStyle = 'rgba(255,255,100,0.4)'; ctx.lineWidth = 2;
+      ctx.setLineDash([3, 4]);
+      ctx.beginPath(); ctx.arc(28, 42, 30, -1.8, -0.2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  } else {
+    // Idle: mazza tenuta dal fianco
+    ctx.fillStyle = '#f9c49a'; ctx.beginPath(); ctx.roundRect(-10, 22, 10, 24, 2); ctx.fill();
+    ctx.fillStyle = '#f9c49a'; ctx.beginPath(); ctx.roundRect(28, 22, 10, 24, 2); ctx.fill();
+    ctx.strokeStyle = '#888'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(36, 28); ctx.lineTo(44, 74); ctx.stroke();
+    ctx.fillStyle = '#555'; ctx.beginPath(); ctx.roundRect(40, 72, 10, 7, 1); ctx.fill();
+  }
+
+  // ── Testa ──
+  const headG = ctx.createRadialGradient(12, -12, 2, 14, -10, 20);
+  headG.addColorStop(0, '#fad4a4');
+  headG.addColorStop(1, '#e8b882');
+  ctx.fillStyle = headG;
+  ctx.beginPath(); ctx.ellipse(14, -10, 16, 18, 0, 0, Math.PI * 2); ctx.fill();
+
+  // Capelli
+  ctx.fillStyle = '#2c1608';
+  ctx.beginPath(); ctx.ellipse(14, -24, 15, 10, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-2, -20); ctx.quadraticCurveTo(-8, -30, -2, -34); ctx.quadraticCurveTo(4, -28, 0, -20);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(30, -20); ctx.quadraticCurveTo(36, -28, 30, -32); ctx.quadraticCurveTo(24, -26, 28, -20);
+  ctx.fill();
+
+  // Occhi
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.ellipse(8, -12, 5, 5.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(20, -12, 5, 5.5, 0, 0, Math.PI * 2); ctx.fill();
+  // Pupille
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath(); ctx.arc(9, -11, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(21, -11, 3, 0, Math.PI * 2); ctx.fill();
+  // Riflesso occhi
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(10, -12, 1.2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(22, -12, 1.2, 0, Math.PI * 2); ctx.fill();
+
+  // Sopracciglia
+  ctx.strokeStyle = '#2c1608'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(4, -19); ctx.lineTo(13, -18); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(16, -18); ctx.lineTo(25, -19); ctx.stroke();
+
+  // Naso & bocca
+  ctx.fillStyle = '#e0a070';
+  ctx.beginPath(); ctx.ellipse(14, -7, 3, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.arc(14, -3, 5, 0.15, Math.PI - 0.15); ctx.stroke();
+
+  // Guance rosate
+  ctx.fillStyle = 'rgba(255,100,80,0.18)';
+  ctx.beginPath(); ctx.ellipse(5, -6, 5, 3.5, -0.2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(23, -6, 5, 3.5, 0.2, 0, Math.PI * 2); ctx.fill();
+
+  // Cappellino golf
+  ctx.fillStyle = h.color;
+  ctx.beginPath();
+  ctx.ellipse(14, -26, 15, 8, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillRect(0, -30, 28, 8);
+  ctx.beginPath(); ctx.roundRect(-1, -32, 30, 8, 2); ctx.fill();
+  // Visiera
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath();
+  ctx.moveTo(-2, -24); ctx.quadraticCurveTo(-10, -20, -6, -18); ctx.quadraticCurveTo(0, -20, 0, -24);
+  ctx.closePath(); ctx.fill();
+  // Logo sul cappellino
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 8px monospace';
+  ctx.fillText('G', 10, -26);
+
+  ctx.restore();
+}
+
+/* ════════════════════════════════════════════════════════
+   STARS FX
+════════════════════════════════════════════════════════ */
+function spawnStars(n) {
+  const container = document.getElementById('game');
+  for (let i = 0; i < n * 3; i++) {
+    const el = document.createElement('div');
+    const emojis = ['⭐','✨','🌟','💫','🎉'];
+    el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    el.style.cssText = `
+      position:absolute;font-size:${16 + Math.random() * 14}px;
+      left:${10 + Math.random() * 80}%;top:${10 + Math.random() * 55}%;
+      pointer-events:none;z-index:65;
+      animation:starFlyKf 1.3s ${Math.random() * 0.4}s ease-out forwards;
+    `;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 1800);
+  }
+}
+const starStyle = document.createElement('style');
+starStyle.textContent = '@keyframes starFlyKf{0%{transform:scale(0) rotate(0);opacity:1;}100%{transform:scale(1.5) rotate(360deg) translateY(-55px);opacity:0;}}';
+document.head.appendChild(starStyle);
+
+/* ════════════════════════════════════════════════════════
+   AUDIO PROCEDURALE
+════════════════════════════════════════════════════════ */
+function newAC() {
+  try { return new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; }
+}
+function playSwingSound() {
+  const a = newAC(); if (!a) return;
+  const o = a.createOscillator(), g = a.createGain();
+  o.connect(g); g.connect(a.destination);
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(280, a.currentTime);
+  o.frequency.exponentialRampToValueAtTime(55, a.currentTime + 0.2);
+  g.gain.setValueAtTime(0.35, a.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.2);
+  o.start(); o.stop(a.currentTime + 0.2);
+}
+function playLandSound() {
+  const a = newAC(); if (!a) return;
+  const buf = a.createBuffer(1, a.sampleRate * 0.12, a.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (a.sampleRate * 0.032));
+  const s = a.createBufferSource(); s.buffer = buf;
+  const g = a.createGain(); g.gain.value = 0.22;
+  s.connect(g); g.connect(a.destination); s.start();
+}
+function playResultSound(delta) {
+  const a = newAC(); if (!a) return;
+  const notes = delta < 0 ? [523, 659, 784, 1047] : delta === 0 ? [392, 440] : [220, 196];
+  notes.forEach((f, i) => {
+    const o = a.createOscillator(), g = a.createGain();
+    o.connect(g); g.connect(a.destination);
+    o.type = 'square'; o.frequency.value = f;
+    g.gain.setValueAtTime(0, a.currentTime + i * 0.13);
+    g.gain.linearRampToValueAtTime(0.14, a.currentTime + i * 0.13 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + i * 0.13 + 0.11);
+    o.start(a.currentTime + i * 0.13);
+    o.stop(a.currentTime + i * 0.13 + 0.12);
+  });
+}
+function playVictorySound() {
+  const a = newAC(); if (!a) return;
+  [523, 659, 784, 880, 1047, 1175, 1319, 1047, 1319].forEach((f, i) => {
+    const o = a.createOscillator(), g = a.createGain();
+    o.connect(g); g.connect(a.destination);
+    o.type = 'square'; o.frequency.value = f;
+    g.gain.setValueAtTime(0, a.currentTime + i * 0.11);
+    g.gain.linearRampToValueAtTime(0.13, a.currentTime + i * 0.11 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + i * 0.11 + 0.09);
+    o.start(a.currentTime + i * 0.11);
+    o.stop(a.currentTime + i * 0.11 + 0.1);
+  });
+}
+
+/* ════════════════════════════════════════════════════════
+   START
+════════════════════════════════════════════════════════ */
+window.addEventListener('load', init);
+</script>
 </body>
 </html>
