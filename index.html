@@ -204,7 +204,136 @@ html,body{
   0%{transform:scale(0) rotate(0deg);opacity:1;}
   100%{transform:scale(1.6) rotate(480deg) translateY(-70px);opacity:0;}
 }
-</style>
+
+/* ═══════════════════════ INTRO SCREEN ═══════════════════════ */
+#intro{
+  position:absolute;inset:0;z-index:90;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  overflow:hidden;
+}
+/* Sfondo intro: stesso cielo+erba del campo ma statico */
+#introCanvas{position:absolute;inset:0;width:100%;height:100%;}
+
+/* Overlay scuro semitrasparente sopra il canvas */
+#intro .overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to bottom,
+    rgba(0,0,0,0.18) 0%,
+    rgba(0,0,0,0.55) 45%,
+    rgba(0,0,0,0.82) 100%);
+}
+
+#intro .content{
+  position:relative;z-index:2;
+  display:flex;flex-direction:column;
+  align-items:center;gap:0;
+  width:100%;
+}
+
+/* Titolo arcade animato */
+.intro-pretitle{
+  font-size:7px;color:#4af;letter-spacing:4px;
+  margin-bottom:10px;
+  animation:fadeSlideDown .6s ease both;
+}
+.intro-logo{
+  font-size:28px;color:#f1c40f;
+  text-shadow:4px 4px 0 #a07000, 0 0 30px rgba(241,196,15,0.6);
+  line-height:1.2;text-align:center;
+  animation:fadeSlideDown .6s .1s ease both;
+  margin-bottom:4px;
+}
+.intro-sub{
+  font-size:9px;color:#fff;letter-spacing:2px;
+  text-shadow:2px 2px 0 #000;
+  animation:fadeSlideDown .6s .2s ease both;
+  margin-bottom:22px;
+}
+
+@keyframes fadeSlideDown{
+  from{opacity:0;transform:translateY(-18px);}
+  to{opacity:1;transform:translateY(0);}
+}
+
+/* Scheda quest */
+.intro-card{
+  background:rgba(2,8,24,0.88);
+  border:2px solid rgba(74,175,255,0.4);
+  border-top:2px solid #4af;
+  width:680px;
+  padding:16px 22px 14px;
+  margin-bottom:20px;
+  animation:fadeSlideUp .6s .35s ease both;
+}
+@keyframes fadeSlideUp{
+  from{opacity:0;transform:translateY(20px);}
+  to{opacity:1;transform:translateY(0);}
+}
+
+.intro-card-title{
+  font-size:7px;color:#4af;letter-spacing:2px;
+  margin-bottom:12px;border-bottom:1px solid rgba(74,175,255,0.2);
+  padding-bottom:8px;
+}
+
+.intro-shots{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  margin-bottom:12px;
+}
+.intro-shot{
+  display:flex;align-items:flex-start;gap:8px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.07);
+  padding:8px 10px;
+}
+.intro-shot-num{
+  font-size:16px;line-height:1;flex-shrink:0;margin-top:1px;
+}
+.intro-shot-body{}
+.intro-shot-tech{font-size:6px;margin-bottom:3px;}
+.intro-shot-desc{font-size:5.5px;color:#6a8aaa;line-height:1.9;}
+
+.intro-par{
+  display:flex;justify-content:space-between;align-items:center;
+  border-top:1px solid rgba(255,255,255,0.07);
+  padding-top:10px;font-size:6px;
+}
+.intro-par-left{color:#567;line-height:2;}
+.intro-par-left span{color:#aaa;}
+.intro-par-badge{
+  background:rgba(39,174,96,0.15);
+  border:1px solid #27ae60;
+  color:#27ae60;padding:4px 12px;font-size:6px;
+}
+
+/* INSERT COIN button */
+.intro-start{
+  background:transparent;
+  border:2px solid #f1c40f;
+  color:#f1c40f;
+  font-family:'Press Start 2P',monospace;
+  font-size:9px;padding:12px 36px;
+  cursor:pointer;letter-spacing:2px;
+  animation:fadeSlideUp .5s .5s ease both, coinBlink 1s .5s step-end infinite;
+  transition:background .15s,color .15s;
+}
+@keyframes coinBlink{
+  0%,100%{opacity:1;}50%{opacity:0.3;}
+}
+.intro-start:hover{
+  background:#f1c40f;color:#000;
+  animation:fadeSlideUp .5s .5s ease both; /* stop blink on hover */
+}
+
+/* Zalando credit */
+.intro-credit{
+  position:absolute;bottom:10px;left:0;right:0;
+  text-align:center;font-size:5.5px;color:#2a4a3a;
+  animation:fadeSlideUp .5s .7s ease both;
+  z-index:2;
+}
+
 </head>
 <body>
 <div id="game">
