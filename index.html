@@ -7,434 +7,418 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
 <style>
-/* ═══════════════════════════════════════════
-   RESET & BASE
-═══════════════════════════════════════════ */
-*{box-sizing:border-box;margin:0;padding:0;}
+/* ═══════════════════════ BASE ═══════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0;image-rendering:pixelated;}
 html,body{
   width:100%;height:100%;
-  background:#0a0a0f;
+  background:#000;
   display:flex;align-items:center;justify-content:center;
   font-family:'Press Start 2P',monospace;
   overflow:hidden;
 }
 
-/* ═══════════════════════════════════════════
-   WRAPPER
-═══════════════════════════════════════════ */
+/* ═══════════════════════ WRAPPER ═══════════════════════ */
 #game{
   position:relative;
-  width:900px;
-  height:580px;
-  background:#000;
+  width:900px;height:580px;
   overflow:hidden;
-  border:3px solid #1a3a1a;
-  box-shadow:0 0 60px rgba(0,255,80,0.08),0 0 0 1px #111;
+  border:4px solid #1a2a1a;
+  box-shadow:0 0 0 2px #0a0a0a,0 0 40px rgba(0,180,80,0.15);
 }
 
-/* ═══════════════════════════════════════════
-   CANVAS (campo di gioco)
-═══════════════════════════════════════════ */
-#fieldCanvas{
-  position:absolute;top:0;left:0;
-  width:100%;height:100%;
-  image-rendering:pixelated;
-}
+/* canvas di sfondo (campo pixel art) */
+#field{position:absolute;top:0;left:0;width:100%;height:100%;}
 
-/* ═══════════════════════════════════════════
-   HUD TOP
-═══════════════════════════════════════════ */
+/* ═══════════════════════ HUD ═══════════════════════ */
 #hud{
-  position:absolute;top:0;left:0;right:0;height:46px;
-  background:linear-gradient(to bottom,rgba(0,0,0,0.92),rgba(0,0,0,0));
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 14px;z-index:30;pointer-events:none;
+  position:absolute;top:0;left:0;right:0;
+  display:flex;justify-content:space-between;align-items:flex-start;
+  padding:8px 12px;z-index:20;pointer-events:none;
 }
-.hud-pill{
-  background:rgba(0,8,24,0.85);
-  border:1.5px solid rgba(80,180,255,0.35);
-  padding:5px 12px;font-size:6.5px;
-  color:#a0c8ff;line-height:2;
-  white-space:nowrap;
+.hud-block{
+  background:rgba(0,0,0,0.82);
+  border:2px solid rgba(255,255,255,0.18);
+  padding:6px 10px;font-size:7px;
+  color:#c8e8c8;line-height:2.1;
 }
-.hud-pill span{color:#fff;}
-.hud-center{font-size:9px;color:#fff;text-shadow:0 0 12px #4af;}
-#windArrow{color:#f1c40f;}
+.hud-block b{color:#fff;}
+.hud-block .yellow{color:#f1c40f;}
+.hud-block .green{color:#2ecc71;}
+.hud-block .red{color:#e74c3c;}
 
-/* ═══════════════════════════════════════════
-   PANNELLO CHALLENGE (bottom sheet)
-═══════════════════════════════════════════ */
-#challengePanel{
+/* shot indicators */
+#shotDots{display:flex;gap:5px;margin-top:4px;}
+.dot{width:10px;height:10px;border:2px solid #555;background:#111;}
+.dot.done{background:#2ecc71;border-color:#2ecc71;}
+.dot.active{background:#f1c40f;border-color:#f1c40f;animation:dotPulse .6s infinite alternate;}
+@keyframes dotPulse{to{opacity:.4;}}
+
+/* ═══════════════════════ CHALLENGE PANEL ═══════════════════════ */
+#panel{
   position:absolute;bottom:0;left:0;right:0;
-  background:linear-gradient(170deg,#03091e 0%,#060d26 100%);
+  background:linear-gradient(175deg,#020c1e 0%,#040f28 100%);
   border-top:2px solid #1a3a6a;
-  z-index:40;
-  padding:14px 20px 12px;
+  padding:13px 18px 11px;
+  z-index:30;
   transform:translateY(0);
-  transition:transform 0.4s cubic-bezier(.4,0,.2,1);
+  transition:transform .35s cubic-bezier(.4,0,.2,1);
 }
-#challengePanel.hidden{transform:translateY(100%);}
+#panel.hidden{transform:translateY(102%);}
 
-.challenge-header{
-  display:flex;align-items:center;gap:10px;margin-bottom:10px;
-}
-.tech-badge{
-  font-size:6px;padding:4px 10px;
+.panel-header{display:flex;align-items:center;gap:10px;margin-bottom:9px;flex-wrap:wrap;}
+.tech-tag{
+  font-size:6px;padding:3px 9px;
   border:1.5px solid currentColor;
-  white-space:nowrap;
+  white-space:nowrap;letter-spacing:.5px;
 }
-.hole-label{font-size:6px;color:#567;margin-left:auto;white-space:nowrap;}
+.shot-label{font-size:6px;color:#3a5a8a;margin-left:auto;white-space:nowrap;}
 
 .scenario{
-  font-size:6.5px;color:#8aabb0;line-height:2;
-  border-left:2px solid #1a4a6a;padding-left:10px;
-  margin-bottom:10px;
+  font-size:6.5px;color:#7a9aaa;line-height:2;
+  border-left:2px solid #1a4a7a;padding-left:9px;
+  margin-bottom:9px;
 }
-.question{font-size:7.5px;color:#ddeeff;margin-bottom:10px;}
+.question{font-size:7.5px;color:#ddeeff;margin-bottom:9px;}
 
-/* Griglia risposte */
-.answers{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px;}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
 .ans{
-  background:rgba(5,15,40,0.9);
-  border:1.5px solid #1a3a5a;
-  color:#a0b8d0;
+  background:rgba(2,10,30,0.9);
+  border:1.5px solid #1a3050;
+  color:#90aac0;
   font-family:'Press Start 2P',monospace;
-  font-size:5.8px;
-  padding:9px 10px;
-  cursor:pointer;text-align:left;
-  line-height:1.9;
-  transition:background .12s,border-color .12s,color .12s;
-  position:relative;
+  font-size:5.5px;padding:8px 9px;
+  cursor:pointer;text-align:left;line-height:2;
+  transition:background .1s,border-color .1s,color .1s;
 }
-.ans:hover{background:rgba(20,60,120,0.7);border-color:#4af;color:#fff;}
-.ans.correct{
-  background:rgba(10,50,25,0.9);
-  border-color:#2ecc71;color:#2ecc71;
-  pointer-events:none;
-}
-.ans.wrong{
-  background:rgba(50,10,10,0.9);
-  border-color:#e74c3c;color:#e74c3c;
-  pointer-events:none;
-}
-.ans.dimmed{pointer-events:none;opacity:0.4;}
+.ans:hover:not([disabled]){background:rgba(15,45,100,.8);border-color:#4af;color:#fff;}
+.ans.correct{background:rgba(5,35,15,.9);border-color:#27ae60;color:#27ae60;pointer-events:none;}
+.ans.wrong{background:rgba(40,5,5,.9);border-color:#e74c3c;color:#e74c3c;pointer-events:none;}
+.ans.dim{pointer-events:none;opacity:.38;}
 
-/* Feedback inline */
-#inlineFB{
-  display:none;
-  font-size:6.2px;line-height:1.9;
-  color:#a0ddb0;
-  border-left:2px solid #2ecc71;
-  padding-left:10px;margin-bottom:8px;
+#fb{
+  display:none;font-size:6px;line-height:2;
+  color:#90d0a8;border-left:2px solid #27ae60;
+  padding-left:9px;margin-bottom:7px;
 }
-#inlineFB.bad{color:#e0a0a0;border-color:#e74c3c;}
+#fb.bad{color:#d09090;border-color:#e74c3c;}
 
-/* Bottone avanti */
-#nextBtn{
+#shootBtn{
   display:none;width:100%;
-  background:transparent;
-  border:1.5px solid #2ecc71;
-  color:#2ecc71;
-  font-family:'Press Start 2P',monospace;
-  font-size:7px;padding:9px;
-  cursor:pointer;letter-spacing:1px;
-  transition:background .15s,color .15s;
+  background:transparent;border:1.5px solid #27ae60;
+  color:#27ae60;font-family:'Press Start 2P',monospace;
+  font-size:7.5px;padding:8px;cursor:pointer;
+  letter-spacing:1px;
+  transition:background .12s,color .12s;
 }
-#nextBtn:hover{background:#2ecc71;color:#000;}
+#shootBtn:hover{background:#27ae60;color:#000;}
 
-/* ═══════════════════════════════════════════
-   POWER METER (bottom, appare dopo risposta)
-═══════════════════════════════════════════ */
+/* ═══════════════════════ POWER ZONE ═══════════════════════ */
 #powerZone{
   position:absolute;bottom:0;left:0;right:0;
-  display:none;
-  flex-direction:column;align-items:center;
-  padding:14px 20px 16px;
-  background:linear-gradient(170deg,#03091e,#060d26);
+  background:linear-gradient(175deg,#020c1e,#040f28);
   border-top:2px solid #1a3a6a;
-  z-index:50;gap:10px;
+  padding:14px 20px 16px;
+  display:none;flex-direction:column;
+  align-items:center;gap:10px;z-index:35;
 }
-#powerInstruction{font-size:6.5px;color:#f1c40f;animation:blink .75s step-end infinite;}
+.pw-label{font-size:6px;color:#f1c40f;animation:blink .7s step-end infinite;}
 @keyframes blink{50%{opacity:0;}}
 
-#powerTrack{
-  width:500px;height:26px;
-  background:#05101e;
-  border:2px solid #1a3a5a;
+#pwTrack{
+  width:480px;height:28px;
+  background:#04101e;border:2px solid #1a3050;
   position:relative;overflow:hidden;
 }
-#powerFill{
+/* zona sweet spot verde */
+#pwTrack::after{
+  content:'';position:absolute;top:0;left:36%;width:28%;height:100%;
+  background:rgba(39,174,96,.12);
+  border-left:1px dashed rgba(39,174,96,.5);
+  border-right:1px dashed rgba(39,174,96,.5);
+}
+#pwFill{
   height:100%;width:0%;
-  background:linear-gradient(to right,#1abc9c 0%,#f1c40f 50%,#e74c3c 100%);
-  transition:width .04s linear;
-  position:relative;
+  background:linear-gradient(to right,#27ae60 0%,#f1c40f 55%,#e74c3c 100%);
+  transition:width .04s linear;position:relative;z-index:1;
 }
-/* zona sweet spot */
-#sweetSpot{
-  position:absolute;top:0;left:38%;width:24%;height:100%;
-  background:rgba(255,255,255,0.07);
-  border-left:1px dashed rgba(255,255,255,0.3);
-  border-right:1px dashed rgba(255,255,255,0.3);
-}
-.power-labels{
-  width:500px;display:flex;justify-content:space-between;
-  font-size:5.5px;color:#456;margin-top:-6px;
-}
+.pw-sub{width:480px;display:flex;justify-content:space-between;font-size:5.5px;color:#2a4a6a;margin-top:-6px;}
+
 #swingBtn{
-  width:220px;height:38px;
+  width:200px;height:36px;
   background:#c0392b;border:2.5px solid #fff;
   color:#fff;font-family:'Press Start 2P',monospace;
   font-size:9px;cursor:pointer;letter-spacing:2px;
-  animation:pulseRed .8s infinite alternate;
+  animation:swingPulse .75s infinite alternate;
 }
-@keyframes pulseRed{from{box-shadow:0 0 0 #c0392b;}to{box-shadow:0 0 18px #e74c3c;}}
+@keyframes swingPulse{to{box-shadow:0 0 22px #e74c3c;}}
 #swingBtn:hover{background:#e74c3c;}
 
-/* ═══════════════════════════════════════════
-   SHOT RESULT BADGE
-═══════════════════════════════════════════ */
-#shotBadge{
-  position:absolute;left:50%;top:34%;
+/* ═══════════════════════ SHOT BADGE ═══════════════════════ */
+#badge{
+  position:absolute;left:50%;top:28%;
   transform:translate(-50%,-50%) scale(0);
-  font-size:20px;color:#f1c40f;
-  text-shadow:3px 3px 0 #000;
-  text-align:center;line-height:1.7;
-  z-index:60;pointer-events:none;
-  transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+  font-size:18px;color:#f1c40f;
+  text-shadow:3px 3px 0 #000,0 0 20px #f1c40f;
+  text-align:center;line-height:1.6;
+  z-index:50;pointer-events:none;
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1);
 }
-#shotBadge.show{transform:translate(-50%,-50%) scale(1);}
+#badge.show{transform:translate(-50%,-50%) scale(1);}
 
-/* ═══════════════════════════════════════════
-   SCHERMATA FINALE
-═══════════════════════════════════════════ */
-#winScreen{
+/* ═══════════════════════ HOLE TRANSITION ═══════════════════════ */
+#transition{
+  position:absolute;inset:0;background:#000;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;
+  z-index:60;opacity:0;pointer-events:none;
+  transition:opacity .4s;
+}
+#transition.show{opacity:1;pointer-events:all;}
+.tr1{font-size:7px;color:#2a4a6a;letter-spacing:3px;}
+.tr2{font-size:16px;color:#f1c40f;text-shadow:0 0 20px #f1c40f;}
+.tr3{font-size:7px;color:#27ae60;}
+
+/* ═══════════════════════ WIN SCREEN ═══════════════════════ */
+#win{
   position:absolute;inset:0;
-  background:rgba(0,0,0,0.96);
+  background:radial-gradient(ellipse at 50% 30%,#041428 0%,#000 70%);
   display:none;flex-direction:column;
   align-items:center;justify-content:center;
-  z-index:80;gap:16px;
+  z-index:70;gap:14px;
 }
-#winScreen.show{display:flex;}
-.win-trophy{font-size:58px;animation:trophyPop .6s cubic-bezier(.34,1.56,.64,1);}
-@keyframes trophyPop{from{transform:scale(0);}to{transform:scale(1);}}
-.win-title{font-size:14px;color:#f1c40f;text-align:center;line-height:2;text-shadow:0 0 20px #f1c40f;}
-.win-sub{font-size:6.5px;color:#8ab;text-align:center;line-height:2.2;max-width:520px;}
+#win.show{display:flex;}
+.win-trophy{font-size:52px;animation:trophyBounce .7s cubic-bezier(.34,1.56,.64,1);}
+@keyframes trophyBounce{from{transform:scale(0) rotate(-20deg);}to{transform:scale(1) rotate(0);}}
+.win-title{font-size:13px;color:#f1c40f;text-shadow:0 0 24px #f1c40f;text-align:center;line-height:1.9;}
+.win-sub{font-size:6.5px;color:#7aaa8a;text-align:center;line-height:2.3;max-width:540px;}
 #restartBtn{
   background:transparent;border:2px solid #f1c40f;
   color:#f1c40f;font-family:'Press Start 2P',monospace;
-  font-size:8px;padding:12px 28px;cursor:pointer;margin-top:8px;
-  transition:background .15s,color .15s;
+  font-size:7.5px;padding:11px 26px;cursor:pointer;margin-top:6px;
+  transition:background .12s,color .12s;
 }
 #restartBtn:hover{background:#f1c40f;color:#000;}
 
-/* ═══════════════════════════════════════════
-   TRANSIZIONE AVANZAMENTO BUCA
-═══════════════════════════════════════════ */
-#holeTransition{
-  position:absolute;inset:0;
-  background:#000;
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:14px;
-  z-index:70;
-  opacity:0;pointer-events:none;
-  transition:opacity .4s;
+/* ═══════════════════════ STAR FX ═══════════════════════ */
+@keyframes starFly{
+  0%{transform:scale(0) rotate(0deg);opacity:1;}
+  100%{transform:scale(1.6) rotate(480deg) translateY(-70px);opacity:0;}
 }
-#holeTransition.show{opacity:1;pointer-events:all;}
-.ht-line1{font-size:8px;color:#567;letter-spacing:2px;}
-.ht-line2{font-size:18px;color:#f1c40f;text-shadow:0 0 18px #f1c40f;}
-.ht-line3{font-size:7px;color:#2ecc71;}
 </style>
 </head>
 <body>
 <div id="game">
-  <canvas id="fieldCanvas"></canvas>
+  <canvas id="field" width="900" height="580"></canvas>
 
   <!-- HUD -->
   <div id="hud">
-    <div class="hud-pill">BUCA: <span id="hudHole">1/4</span></div>
-    <div class="hud-center" id="hudTech">⛳ ZALLY GOLF CLUB</div>
-    <div class="hud-pill">VENTO <span id="windArrow">–</span> &nbsp;|&nbsp; SCORE <span id="hudScore">EVEN</span></div>
+    <div class="hud-block">
+      <b>ZALLY GOLF CLUB</b><br>
+      HOLE 1 &nbsp;·&nbsp; PAR 4<br>
+      <div id="shotDots">
+        <div class="dot active" id="d0"></div>
+        <div class="dot" id="d1"></div>
+        <div class="dot" id="d2"></div>
+        <div class="dot" id="d3"></div>
+      </div>
+    </div>
+    <div class="hud-block" style="text-align:center;">
+      SHOT <span class="yellow" id="hudShot">1</span>/4<br>
+      <span id="hudTech" style="color:#4af;font-size:6px;">ROLE-PLAYING</span>
+    </div>
+    <div class="hud-block" style="text-align:right;">
+      WIND&nbsp;<span class="yellow" id="hudWind">5m/s →</span><br>
+      SCORE&nbsp;<span class="green" id="hudScore">EVEN</span>
+    </div>
   </div>
 
   <!-- CHALLENGE PANEL -->
-  <div id="challengePanel">
-    <div class="challenge-header">
-      <span class="tech-badge" id="techBadge">ROLE-PLAYING</span>
-      <span class="hole-label" id="holeLabel">BUCA 1 · PAR 3</span>
+  <div id="panel">
+    <div class="panel-header">
+      <span class="tech-tag" id="techTag">🎭 ROLE-PLAYING</span>
+      <span class="shot-label" id="shotLabel">SHOT 1 / 4</span>
     </div>
     <div class="scenario" id="scenarioTxt"></div>
     <div class="question" id="questionTxt"></div>
     <div class="answers" id="answersGrid"></div>
-    <div id="inlineFB"></div>
-    <button id="nextBtn" onclick="onNextClick()">COLPISCI! ⛳</button>
+    <div id="fb"></div>
+    <button id="shootBtn" onclick="goToPower()">COLPISCI! ⛳</button>
   </div>
 
   <!-- POWER ZONE -->
   <div id="powerZone">
-    <div id="powerInstruction">▶ PREMI SPAZIO o SWING per fermare la potenza!</div>
-    <div id="powerTrack">
-      <div id="sweetSpot"></div>
-      <div id="powerFill"></div>
-    </div>
-    <div class="power-labels"><span>CORTO</span><span>◀ ZONA IDEALE ▶</span><span>LUNGO</span></div>
-    <button id="swingBtn" onclick="stopPower()">SWING!</button>
+    <div class="pw-label">▶ SPAZIO o SWING per fermare la potenza!</div>
+    <div id="pwTrack"><div id="pwFill"></div></div>
+    <div class="pw-sub"><span>CORTO</span><span>◀ ZONA IDEALE ▶</span><span>LUNGO</span></div>
+    <button id="swingBtn" onclick="stopPower()">⛳ SWING!</button>
   </div>
 
-  <!-- SHOT BADGE -->
-  <div id="shotBadge"></div>
+  <!-- BADGE -->
+  <div id="badge"></div>
 
-  <!-- HOLE TRANSITION -->
-  <div id="holeTransition">
-    <div class="ht-line1">PROSSIMA TECNICA</div>
-    <div class="ht-line2" id="htTech"></div>
-    <div class="ht-line3" id="htSub"></div>
+  <!-- TRANSITION -->
+  <div id="transition">
+    <div class="tr1">PROSSIMO COLPO</div>
+    <div class="tr2" id="trTech"></div>
+    <div class="tr3" id="trSub"></div>
   </div>
 
-  <!-- WIN SCREEN -->
-  <div id="winScreen">
+  <!-- WIN -->
+  <div id="win">
     <div class="win-trophy">🏆</div>
-    <div class="win-title">CAMPIONATO COMPLETATO!</div>
+    <div class="win-title">HOLE COMPLETE!<br>PROMPT MASTER!</div>
     <div class="win-sub" id="winSub"></div>
-    <button id="restartBtn" onclick="restartGame()">GIOCA ANCORA</button>
+    <button id="restartBtn" onclick="restartGame()">PLAY AGAIN ⛳</button>
   </div>
 </div>
 
 <script>
-/* ════════════════════════════════════════════════════════
-   DATA
-════════════════════════════════════════════════════════ */
-const HOLES = [
+/* ═══════════════════ DATA ═══════════════════ */
+const SHOTS = [
   {
-    id:1, par:3,
     tech:"ROLE-PLAYING", icon:"🎭", color:"#e74c3c",
-    wind:{spd:5, label:"5 m/s →", dx:1},
-    scenario:"Il CEO chiede un'analisi critica del Q3. Hai bisogno che Gemini si comporti da consulente senior severo, non da assistente che annuisce a tutto.",
+    wind:"5 m/s →", windDx:1,
+    scenario:"Il CEO vuole un'analisi critica del Q3. Hai bisogno che Gemini si comporti da consulente senior severo, non da assistente che annuisce a tutto.",
     question:"Quale prompt usa correttamente il ROLE-PLAYING?",
     answers:[
-      {t:"Analizza i risultati del Q3 e dimmi cosa pensi.", ok:false, w:"Nessun ruolo: Gemini risponderà in modo generico e accomodante."},
-      {t:"Agisci come un CFO con 20 anni di esperienza. Analizza il Q3 con occhio critico: identifica le 3 maggiori inefficienze e proponi azioni correttive.", ok:true, w:"Ruolo preciso + stile + compito = risposta calibrata come un vero esperto."},
-      {t:"Sei un assistente. Guarda il Q3 e fai un riassunto.", ok:false, w:"'Assistente' non è un ruolo specifico. Mancano stile e vincoli comportamentali."},
-      {t:"Dammi un'analisi professionale e dettagliata del Q3.", ok:false, w:"'Professionale' è vago. Nessuna persona/ruolo con cui Gemini possa identificarsi."}
+      {t:"Analizza i risultati del Q3 e dimmi cosa pensi.", ok:false,
+       w:"Nessun ruolo: Gemini risponderà in modo generico e accomodante."},
+      {t:"Agisci come un CFO con 20 anni di esperienza. Analizza il Q3: identifica le 3 maggiori inefficienze e proponi azioni correttive senza sconti.", ok:true,
+       w:"Ruolo preciso + stile + compito = risposta calibrata come un vero esperto."},
+      {t:"Sei un assistente. Guarda il Q3 e fai un riassunto.", ok:false,
+       w:"'Assistente' non è un ruolo specifico. Mancano stile e vincoli comportamentali."},
+      {t:"Dammi un'analisi professionale e dettagliata del Q3.", ok:false,
+       w:"'Professionale' è vago. Nessuna persona con cui Gemini possa identificarsi."}
     ],
-    feedback:"Il ROLE-PLAYING imposta le System Instructions: definendo persona, stile e vincoli, ogni risposta sarà coerente. È come avere un esperto dedicato nel team."
+    feedback:"Il ROLE-PLAYING imposta le System Instructions: definendo persona, stile e vincoli, ogni risposta sarà coerente come avere un esperto dedicato nel team.",
+    emailTakeaway:"Stop talking to a generic chatbot. Assign Gemini a precise role — job title, experience, behavioral rules. <b>A CFO with 20 years and zero tolerance for excuses</b> will give you a completely different (and far more useful) response than 'professional assistant'. The persona IS the prompt."
   },
   {
-    id:2, par:3,
     tech:"CONTEXT-AWARE", icon:"🌍", color:"#3498db",
-    wind:{spd:12, label:"12 m/s ↗", dx:0.7},
+    wind:"12 m/s ↗", windDx:0.7,
     scenario:"Black Friday tra 48h. 12 corrieri bloccati, 3 hub offline. Hai bisogno di ottimizzare i turni — senza contesto, Gemini darà soluzioni da manuale, non da emergenza.",
     question:"Quale prompt fornisce il CONTESTO operativo corretto?",
     answers:[
-      {t:"Come ottimizzare i turni di magazzino durante il Black Friday?", ok:false, w:"Domanda generica senza contesto: ottieni consigli standard che trovi su Google."},
-      {t:"Ottimizza i turni. Abbiamo poco personale e molto lavoro.", ok:false, w:"'Poco personale, molto lavoro' è troppo vago per calibrare la risposta."},
-      {t:"Siamo a 48h dal Black Friday. 12 corrieri assenti, hub Milano e Roma offline. 340 ordini prioritari da smistare. Con questi vincoli, come ottimizzare i turni per minimizzare i ritardi?", ok:true, w:"Contesto temporale + vincoli reali + numeri = risposta sull'emergenza, non sul manuale."},
-      {t:"È un periodo di picco. Cosa faccio con i turni?", ok:false, w:"'Periodo di picco' non dice nulla sui vincoli specifici. Risposta troppo generica."}
+      {t:"Come ottimizzare i turni di magazzino durante il Black Friday?", ok:false,
+       w:"Domanda generica senza contesto: ottieni consigli standard da Google."},
+      {t:"Ottimizza i turni. Abbiamo poco personale e molto lavoro.", ok:false,
+       w:"'Poco personale, molto lavoro' è troppo vago per calibrare la risposta."},
+      {t:"Siamo a 48h dal Black Friday. 12 corrieri assenti, hub Milano e Roma offline. 340 ordini prioritari. Con questi vincoli, come minimizzare i ritardi ottimizzando i turni?", ok:true,
+       w:"Contesto temporale + vincoli reali + numeri precisi = risposta sull'emergenza, non sul manuale."},
+      {t:"È un periodo di picco. Cosa faccio con i turni?", ok:false,
+       w:"'Periodo di picco' non dice nulla sui vincoli specifici del problema."}
     ],
-    feedback:"Il CONTEXT-AWARE Prompting trasforma domande generiche in richieste su misura. Gemini non è telepatico: i dettagli del tuo contesto sono il suo brief di progetto."
+    feedback:"Il CONTEXT-AWARE Prompting trasforma domande generiche in richieste su misura. Gemini non è telepatico: i dettagli del tuo contesto sono il suo brief di progetto.",
+    emailTakeaway:"Gemini isn't a mind reader — it's a mirror. <b>The quality of the output reflects the richness of your input.</b> Operational context (timing, constraints, real numbers) is the difference between a textbook answer and a field-ready solution. Before you ask the question, brief Gemini like you'd brief a new team member on their first emergency shift."
   },
   {
-    id:3, par:4,
     tech:"NEGATIVE PROMPTING", icon:"🚫", color:"#e67e22",
-    wind:{spd:8, label:"8 m/s ↙", dx:-0.5},
+    wind:"8 m/s ↙", windDx:-0.5,
     scenario:"Serve un report magazzino leggibile da un manager non tecnico. Gemini di default usa gergo, acronimi e fa output interminabili — devi fermare quei comportamenti.",
     question:"Quale prompt usa meglio il NEGATIVE PROMPTING?",
     answers:[
-      {t:"Scrivi un report di magazzino semplice e chiaro, senza cose complicate.", ok:false, w:"'Senza cose complicate' è soggettivo. Gemini non sa cosa intendi."},
-      {t:"Fai un report magazzino. Tienilo breve.", ok:false, w:"'Breve' è vago: quanto breve? Gemini interpreterà a modo suo."},
-      {t:"Scrivi un report sullo stato del magazzino. NON usare acronimi. NON includere dati grezzi. NON superare 5 punti. Ogni punto max 2 righe.", ok:true, w:"Tre divieti espliciti + limite quantitativo = output pulito e prevedibile ogni volta."},
-      {t:"Scrivi un report professionale e conciso per il management.", ok:false, w:"'Professionale e conciso' sono valutazioni qualitative: ogni AI le interpreta diversamente."}
+      {t:"Scrivi un report di magazzino semplice e chiaro, senza cose complicate.", ok:false,
+       w:"'Senza cose complicate' è soggettivo. Gemini non sa cosa intendi."},
+      {t:"Fai un report magazzino. Tienilo breve.", ok:false,
+       w:"'Breve' è vago: quanto breve? Gemini interpreterà a modo suo."},
+      {t:"Scrivi un report sullo stato del magazzino. NON usare acronimi. NON includere dati grezzi. NON superare 5 punti. Ogni punto max 2 righe.", ok:true,
+       w:"Tre divieti espliciti + limite quantitativo = output pulito e prevedibile ogni volta."},
+      {t:"Scrivi un report professionale e conciso per il management.", ok:false,
+       w:"'Professionale e conciso' sono qualitative: ogni AI le interpreta diversamente."}
     ],
-    feedback:"Il NEGATIVE PROMPTING è chirurgico: 'NON fare X' è spesso più potente di 'fai Y'. Definisce i confini dell'output e disattiva i comportamenti di default che non servono."
+    feedback:"Il NEGATIVE PROMPTING è chirurgico: 'NON fare X' è spesso più potente di 'fai Y'. Definisce i confini dell'output e disattiva i comportamenti di default inutili.",
+    emailTakeaway:"Sometimes the most powerful word in a prompt is <b>NOT</b>. Gemini has default behaviors baked in — verbose explanations, technical jargon, bullet overload. Explicit prohibitions override those defaults surgically. Think of it as setting the out-of-bounds markers on your fairway: <b>no acronyms, no raw data, max 5 points</b> — now Gemini knows exactly where NOT to go."
   },
   {
-    id:4, par:3,
     tech:"META-PROMPTING", icon:"🧠", color:"#9b59b6",
-    wind:{spd:3, label:"3 m/s ↓", dx:0},
+    wind:"3 m/s ↓", windDx:0,
     scenario:"Devi automatizzare un processo di cross-docking complesso ma non sai da dove iniziare. Non conosci nemmeno le domande giuste da fare.",
     question:"Qual è la mossa da Meta-Prompting master?",
     answers:[
-      {t:"Spiegami il cross-docking e come automatizzarlo.", ok:false, w:"Ottieni teoria generica, non un piano operativo per la tua situazione specifica."},
-      {t:"Prima di rispondermi, fammi 5 domande per capire il mio processo, poi costruisci il prompt ideale per aiutarmi ad automatizzarlo.", ok:true, w:"Usi Gemini come Prompt Engineer: ti fa le domande giuste prima di rispondere."},
-      {t:"Come posso migliorare il mio processo logistico?", ok:false, w:"Troppo generico. Ottieni best practice universali, non la tua soluzione."},
-      {t:"Dammi 10 consigli per il cross-docking.", ok:false, w:"Lista standard. Nessun adattamento al tuo contesto specifico."}
+      {t:"Spiegami il cross-docking e come automatizzarlo.", ok:false,
+       w:"Risposta educativa, non operativa. Ottieni teoria generica."},
+      {t:"Prima di rispondermi, fammi 5 domande per capire il mio processo, poi costruisci il prompt ideale per aiutarmi ad automatizzarlo.", ok:true,
+       w:"Usi Gemini come Prompt Engineer: ti fa le domande giuste prima di rispondere."},
+      {t:"Come posso migliorare il mio processo logistico?", ok:false,
+       w:"Troppo generico. Best practice universali, non la tua soluzione."},
+      {t:"Dammi 10 consigli per il cross-docking.", ok:false,
+       w:"Lista standard. Nessun adattamento al tuo contesto specifico."}
     ],
-    feedback:"Il META-PROMPTING trasforma Gemini nel tuo Prompt Engineer personale. Invece di cercare la domanda perfetta, chiedi a Gemini di trovarla per te."
+    feedback:"Il META-PROMPTING trasforma Gemini nel tuo Prompt Engineer personale. Invece di cercare la domanda perfetta, chiedi a Gemini di trovarla per te.",
+    emailTakeaway:"The highest level of prompting isn't about asking the perfect question — it's about <b>asking Gemini to find the perfect question for you.</b> When you're stuck at the tee box of a complex problem, Meta-Prompting is the caddie that hands you the right club. Ask it to interview you, build the prompt, then answer it. That's a hole-in-one workflow."
   }
 ];
 
-/* ════════════════════════════════════════════════════════
-   STATE
-════════════════════════════════════════════════════════ */
-let holeIdx = 0;
+/* ═══════════════════ STATE ═══════════════════ */
+let shotIdx = 0;
 let totalScore = 0;
-let scoreArr = [];
+let shotResults = [];
 let answered = false;
 let correctChosen = false;
-let phase = "challenge"; // challenge | power | flight | result | transition
-let power = 0, powerDir = 1, powerRunning = false, powerRaf = null;
+let phase = "challenge";
 
-// Ball physics
+let power = 0, pwDir = 1, pwRunning = false, pwRaf = null;
+
 let bx = 0, by = 0, bvx = 0, bvy = 0;
-let ballVisible = false;
+let ballActive = false;
 let trail = [];
 
-// Animation
-let cloudOffset = 0;
-let frameCount = 0;
 let zallyState = "idle"; // idle | backswing | swing | follow
+let zallySwingT = 0;
 
-// Canvas
-const canvas = document.getElementById('fieldCanvas');
+let cloudX = [60, 220, 400, 620, 800];
+let frameN = 0;
+
+/* ═══════════════════ CANVAS SETUP ═══════════════════ */
+const canvas = document.getElementById('field');
 const ctx = canvas.getContext('2d');
-let W = 900, H = 580;
+const W = 900, H = 580;
 
-/* ════════════════════════════════════════════════════════
-   INIT
-════════════════════════════════════════════════════════ */
+/* ═══════════════════ INIT ═══════════════════ */
 function init() {
-  canvas.width = W;
-  canvas.height = H;
-  loadHole(0);
+  loadShot(0);
   requestAnimationFrame(loop);
   document.addEventListener('keydown', e => {
     if (e.code === 'Space') { e.preventDefault(); stopPower(); }
   });
 }
 
-/* ════════════════════════════════════════════════════════
-   LOAD HOLE
-════════════════════════════════════════════════════════ */
-function loadHole(idx) {
-  holeIdx = idx;
+/* ═══════════════════ LOAD SHOT ═══════════════════ */
+function loadShot(idx) {
+  shotIdx = idx;
   answered = false;
   correctChosen = false;
-  ballVisible = false;
+  ballActive = false;
   trail = [];
   zallyState = "idle";
   phase = "challenge";
 
-  const h = HOLES[idx];
+  const s = SHOTS[idx];
 
   // HUD
-  document.getElementById('hudHole').textContent = `${h.id}/4`;
-  document.getElementById('hudTech').textContent = `${h.icon} ${h.tech}`;
-  document.getElementById('windArrow').textContent = h.wind.label;
+  document.getElementById('hudShot').textContent = idx + 1;
+  document.getElementById('hudTech').textContent = s.tech;
+  document.getElementById('hudWind').textContent = s.wind;
   updateScoreHUD();
 
-  // Challenge panel
-  document.getElementById('techBadge').textContent = h.tech;
-  document.getElementById('techBadge').style.color = h.color;
-  document.getElementById('techBadge').style.borderColor = h.color;
-  document.getElementById('holeLabel').textContent = `BUCA ${h.id} · PAR ${h.par}`;
-  document.getElementById('scenarioTxt').textContent = h.scenario;
-  document.getElementById('questionTxt').textContent = h.question;
+  // Shot dots
+  for (let i = 0; i < 4; i++) {
+    const d = document.getElementById('d' + i);
+    d.className = 'dot' + (i < idx ? ' done' : i === idx ? ' active' : '');
+  }
 
-  // Answers
+  // Panel
+  document.getElementById('techTag').textContent = s.icon + ' ' + s.tech;
+  document.getElementById('techTag').style.color = s.color;
+  document.getElementById('techTag').style.borderColor = s.color;
+  document.getElementById('shotLabel').textContent = `SHOT ${idx + 1} / 4`;
+  document.getElementById('scenarioTxt').textContent = s.scenario;
+  document.getElementById('questionTxt').textContent = s.question;
+
+  // Shuffle & render answers
   const grid = document.getElementById('answersGrid');
   grid.innerHTML = '';
-  // shuffle
-  const shuffled = [...h.answers].sort(() => Math.random() - 0.5);
-  shuffled.forEach((a, i) => {
+  [...s.answers].sort(() => Math.random() - .5).forEach(a => {
     const btn = document.createElement('button');
     btn.className = 'ans';
     btn.textContent = a.t;
@@ -442,234 +426,183 @@ function loadHole(idx) {
     grid.appendChild(btn);
   });
 
-  document.getElementById('inlineFB').style.display = 'none';
-  document.getElementById('nextBtn').style.display = 'none';
-  document.getElementById('challengePanel').classList.remove('hidden');
+  document.getElementById('fb').style.display = 'none';
+  document.getElementById('shootBtn').style.display = 'none';
+  document.getElementById('panel').classList.remove('hidden');
   document.getElementById('powerZone').style.display = 'none';
-  document.getElementById('shotBadge').classList.remove('show');
-  document.getElementById('holeTransition').classList.remove('show');
+  document.getElementById('badge').className = 'badge';
+  document.getElementById('transition').classList.remove('show');
 }
 
-/* ════════════════════════════════════════════════════════
-   ANSWER SELECTION
-════════════════════════════════════════════════════════ */
+/* ═══════════════════ ANSWER ═══════════════════ */
 function selectAnswer(chosen) {
   if (answered) return;
   answered = true;
   correctChosen = chosen.ok;
 
-  const btns = document.querySelectorAll('.ans');
-  const h = HOLES[holeIdx];
-  btns.forEach(btn => {
-    const match = h.answers.find(a => a.t === btn.textContent);
+  document.querySelectorAll('.ans').forEach(btn => {
+    const match = SHOTS[shotIdx].answers.find(a => a.t === btn.textContent);
     if (!match) return;
-    btn.classList.add(match.ok ? 'correct' : 'dimmed');
-    if (match === chosen && !chosen.ok) btn.classList.replace('dimmed', 'wrong');
+    if (match.ok) btn.classList.add('correct');
+    else if (match === chosen) btn.classList.add('wrong');
+    else btn.classList.add('dim');
   });
 
-  const fb = document.getElementById('inlineFB');
-  fb.style.display = 'block';
+  const fb = document.getElementById('fb');
   fb.className = correctChosen ? '' : 'bad';
+  fb.style.display = 'block';
   fb.textContent = (correctChosen ? '✅ CORRETTO! ' : '❌ SBAGLIATO! ') + chosen.w;
 
-  document.getElementById('nextBtn').style.display = 'block';
-  document.getElementById('nextBtn').textContent = correctChosen
-    ? 'PERFETTO — COLPISCI! ⛳'
-    : 'VAI COMUNQUE AL TEE →';
+  document.getElementById('shootBtn').style.display = 'block';
+  document.getElementById('shootBtn').textContent = correctChosen
+    ? '⛳ PERFETTO — COLPISCI!'
+    : '→ VAI AL TEE COMUNQUE';
 }
 
-/* ════════════════════════════════════════════════════════
-   NEXT CLICK → go to power
-════════════════════════════════════════════════════════ */
-function onNextClick() {
-  document.getElementById('challengePanel').classList.add('hidden');
+/* ═══════════════════ POWER ═══════════════════ */
+function goToPower() {
+  document.getElementById('panel').classList.add('hidden');
   document.getElementById('powerZone').style.display = 'flex';
   phase = 'power';
-  power = 0; powerDir = 1; powerRunning = true;
+  power = 0; pwDir = 1; pwRunning = true;
   runPower();
 }
 
 function runPower() {
-  if (!powerRunning) return;
-  power += powerDir * 1.8;
-  if (power >= 100) { power = 100; powerDir = -1; }
-  if (power <= 0) { power = 0; powerDir = 1; }
-  document.getElementById('powerFill').style.width = power + '%';
-  powerRaf = requestAnimationFrame(runPower);
+  if (!pwRunning) return;
+  power += pwDir * 1.9;
+  if (power >= 100) { power = 100; pwDir = -1; }
+  if (power <= 0) { power = 0; pwDir = 1; }
+  document.getElementById('pwFill').style.width = power + '%';
+  pwRaf = requestAnimationFrame(runPower);
 }
 
 function stopPower() {
   if (phase !== 'power') return;
-  powerRunning = false;
-  cancelAnimationFrame(powerRaf);
+  pwRunning = false;
+  cancelAnimationFrame(pwRaf);
   document.getElementById('powerZone').style.display = 'none';
   phase = 'flight';
   launchBall(power);
-  playSwingSound();
-  animateZallySwing();
+  doZallySwing();
+  playSwing();
 }
 
-/* ════════════════════════════════════════════════════════
-   BALL LAUNCH
-════════════════════════════════════════════════════════ */
+/* ═══════════════════ BALL ═══════════════════ */
 function launchBall(pw) {
-  ballVisible = true;
+  ballActive = true;
   trail = [];
-  const h = HOLES[holeIdx];
-
-  // Palla parte da Zally (in basso a sx in prospettiva)
-  bx = W * 0.16;
-  by = H * 0.76;
-
-  // Tiro verso il green (in prospettiva: vola verso alto-centro/destra)
-  const windFactor = h.wind.dx * h.wind.spd * 0.009;
-  const spd = 4.2 + (pw / 100) * 7.5;
-  const angleRad = (55 - pw * 0.15) * Math.PI / 180;
-
-  bvx = Math.cos(angleRad) * spd * 0.85 + windFactor;
-  bvy = -Math.sin(angleRad) * spd;
+  const s = SHOTS[shotIdx];
+  // Zally è centrata in basso → palla parte da lì
+  bx = W * 0.5 + 18;
+  by = H * 0.73;
+  const windX = s.windDx * s.wind.match(/\d+/)[0] * 0.009;
+  const spd = 3.8 + (pw / 100) * 7.2;
+  const angle = (52 - pw * 0.14) * Math.PI / 180;
+  bvx = Math.cos(angle) * spd * 0.9 + windX;
+  bvy = -Math.sin(angle) * spd;
 }
 
-/* ════════════════════════════════════════════════════════
-   ZALLY SWING ANIMATION
-════════════════════════════════════════════════════════ */
-function animateZallySwing() {
-  zallyState = 'backswing';
-  setTimeout(() => { zallyState = 'swing'; }, 150);
-  setTimeout(() => { zallyState = 'follow'; }, 350);
-  setTimeout(() => { zallyState = 'idle'; }, 900);
-}
-
-/* ════════════════════════════════════════════════════════
-   MAIN GAME LOOP
-════════════════════════════════════════════════════════ */
-function loop() {
-  frameCount++;
-  cloudOffset += 0.22;
-
-  drawScene();
-
-  if (phase === 'flight') updateBall();
-
-  requestAnimationFrame(loop);
-}
-
-/* ════════════════════════════════════════════════════════
-   BALL UPDATE
-════════════════════════════════════════════════════════ */
 function updateBall() {
-  bvy += 0.17; // gravity
-  bx += bvx;
-  by += bvy;
-
+  bvy += 0.175;
+  bx += bvx; by += bvy;
   trail.push({ x: bx, y: by });
-  if (trail.length > 28) trail.shift();
-
-  // La palla "atterra" quando scende sotto la linea del fairway
-  // In prospettiva, la ground line varia con x
-  const groundY = perspGround(bx);
-  if (by >= groundY) {
-    by = groundY;
-    ballVisible = true;
+  if (trail.length > 32) trail.shift();
+  // ground in prospettiva: vicino=basso, lontano=alto
+  const ground = perspGround(bx);
+  if (by >= ground) {
+    by = ground; ballActive = false;
     phase = 'result';
-    playLandSound();
-    setTimeout(showResult, 500);
+    playLand();
+    setTimeout(showResult, 600);
   }
-
-  // Out of bounds laterale
-  if (bx > W + 80 || bx < -80) {
-    phase = 'result';
-    setTimeout(showResult, 200);
-  }
+  if (bx > W + 100 || bx < -100) { phase = 'result'; setTimeout(showResult, 200); }
 }
 
-// Linea del suolo in prospettiva: vicino = in basso, lontano = in alto
 function perspGround(x) {
-  const t = Math.max(0, Math.min(1, (x - W * 0.12) / (W * 0.65)));
-  return H * 0.795 - t * (H * 0.285);
+  const t = Math.max(0, Math.min(1, (x - W * .15) / (W * .7)));
+  return H * 0.78 - t * (H * 0.31);
 }
 
-/* ════════════════════════════════════════════════════════
-   SHOW RESULT
-════════════════════════════════════════════════════════ */
+/* ═══════════════════ RESULT ═══════════════════ */
 function showResult() {
-  const h = HOLES[holeIdx];
-  // Target: green al centro-destra, in prospettiva
-  const flagScreenX = W * 0.72;
-  const dist = Math.abs(bx - flagScreenX);
-
+  // target = flag, schematicamente al centro del green
+  const flagSX = W * 0.5;
+  const dist = Math.abs(bx - flagSX);
+  const pw = power;
   let label, delta;
-  if (!correctChosen) {
-    label = "BOGEY +1 💨"; delta = 1;
-  } else if (dist < W * 0.05) {
-    label = "HOLE IN ONE! ⭐"; delta = -2;
-  } else if (dist < W * 0.11) {
-    label = "EAGLE -2 🦅"; delta = -1;
-  } else if (dist < W * 0.20) {
-    label = "BIRDIE -1 🐦"; delta = 0;
-  } else {
-    label = "PAR ⛳"; delta = 0;
-  }
+  if (!correctChosen) { label = "BOGEY +1 💨"; delta = 1; }
+  else if (dist < W * 0.05) { label = "HOLE IN ONE! ⭐⭐"; delta = -2; }
+  else if (dist < W * 0.12) { label = "EAGLE 🦅 -1"; delta = -1; }
+  else if (dist < W * 0.22) { label = "BIRDIE 🐦 ±0"; delta = 0; }
+  else { label = "PAR ⛳ ±0"; delta = 0; }
 
   totalScore += delta;
-  scoreArr.push({ hole: h.id, delta });
+  shotResults.push({ shot: shotIdx + 1, tech: SHOTS[shotIdx].tech, label, delta });
   updateScoreHUD();
 
-  const badge = document.getElementById('shotBadge');
-  badge.textContent = label;
-  badge.classList.add('show');
-  playResultSound(delta);
-  spawnStars(delta <= -1 ? 5 : 2);
+  const badge = document.getElementById('badge');
+  badge.textContent = label; badge.className = 'show';
+  playResult(delta);
+  spawnStars(delta < 0 ? 5 : 2);
 
   setTimeout(() => {
-    badge.classList.remove('show');
-
-    if (holeIdx >= HOLES.length - 1) {
-      // Fine campionato
-      setTimeout(showWinScreen, 400);
+    badge.className = '';
+    if (shotIdx >= SHOTS.length - 1) {
+      finalHole();
     } else {
-      // Transizione alla prossima buca
-      showHoleTransition();
+      showTransition();
     }
-  }, 2200);
-}
-
-/* ════════════════════════════════════════════════════════
-   HOLE TRANSITION SCREEN
-════════════════════════════════════════════════════════ */
-function showHoleTransition() {
-  const next = HOLES[holeIdx + 1];
-  const ht = document.getElementById('holeTransition');
-  document.getElementById('htTech').textContent = next.icon + ' ' + next.tech;
-  document.getElementById('htTech').style.color = next.color;
-  document.getElementById('htSub').textContent = `BUCA ${next.id} — PAR ${next.par}`;
-  ht.classList.add('show');
-  setTimeout(() => {
-    ht.classList.remove('show');
-    loadHole(holeIdx + 1);
   }, 2400);
 }
 
-/* ════════════════════════════════════════════════════════
-   WIN SCREEN
-════════════════════════════════════════════════════════ */
-function showWinScreen() {
-  document.getElementById('winScreen').classList.add('show');
+function showTransition() {
+  const next = SHOTS[shotIdx + 1];
+  document.getElementById('trTech').textContent = next.icon + ' ' + next.tech;
+  document.getElementById('trTech').style.color = next.color;
+  document.getElementById('trSub').textContent = `SHOT ${shotIdx + 2} / 4`;
+  document.getElementById('transition').classList.add('show');
+  setTimeout(() => {
+    document.getElementById('transition').classList.remove('show');
+    loadShot(shotIdx + 1);
+  }, 2200);
+}
+
+function finalHole() {
+  // Animazione: la palla rotola verso la buca
+  ballActive = true;
+  bx = W * 0.5; by = perspGround(W * 0.5);
+  bvx = (W * 0.5 - bx) * 0.05;
+  bvy = 0;
+  setTimeout(() => {
+    ballActive = false;
+    playHoleIn();
+    spawnStars(8);
+    setTimeout(showWin, 1200);
+  }, 800);
+}
+
+/* ═══════════════════ WIN ═══════════════════ */
+function showWin() {
   const sc = totalScore === 0 ? 'EVEN'
     : totalScore < 0 ? `-${Math.abs(totalScore)}`
     : `+${totalScore}`;
-  const details = scoreArr.map(s =>
-    `B${s.hole}: ${s.delta < 0 ? s.delta : s.delta === 0 ? 'PAR' : '+' + s.delta}`
-  ).join('  ·  ');
-  document.getElementById('winSub').innerHTML =
-    `Score finale: ${sc}<br>${details}<br><br>Hai padroneggiato 4 tecniche di Prompt Engineering su Gemini.<br>Ora applicale nel tuo lavoro quotidiano su Google Workspace!`;
-  playVictorySound();
+  const lines = shotResults.map(r =>
+    `SHOT ${r.shot} (${r.tech}): ${r.label}`
+  ).join('\n');
+  document.getElementById('winSub').textContent =
+    `Score: ${sc}\n\n${lines}\n\nHai padroneggiato 4 tecniche di Prompt Engineering.\nApplicale su Gemini Workspace!`;
+  document.getElementById('win').classList.add('show');
+  playVictory();
+
+  // ── EMAIL (solo in Apps Script — ignorata su GitHub) ──
+  if (typeof sendCompletionEmail === 'function') sendCompletionEmail();
 }
 
 function restartGame() {
-  totalScore = 0; scoreArr = [];
-  document.getElementById('winScreen').classList.remove('show');
-  loadHole(0);
+  totalScore = 0; shotResults = [];
+  document.getElementById('win').classList.remove('show');
+  loadShot(0);
 }
 
 function updateScoreHUD() {
@@ -679,579 +612,869 @@ function updateScoreHUD() {
   else { el.textContent = `+${totalScore}`; el.style.color = '#e74c3c'; }
 }
 
-/* ════════════════════════════════════════════════════════
-   DRAW SCENE
-════════════════════════════════════════════════════════ */
+/* ═══════════════════ ZALLY SWING ═══════════════════ */
+function doZallySwing() {
+  zallyState = 'backswing';
+  setTimeout(() => zallyState = 'swing', 140);
+  setTimeout(() => zallyState = 'follow', 320);
+  setTimeout(() => zallyState = 'idle', 900);
+}
+
+/* ═══════════════════ MAIN LOOP ═══════════════════ */
+function loop() {
+  frameN++;
+  // move clouds
+  cloudX = cloudX.map(x => (x + 0.28) % (W + 160));
+  drawScene();
+  if (phase === 'flight' && ballActive) updateBall();
+  requestAnimationFrame(loop);
+}
+
+/* ═══════════════════════════════════════════════════════
+   DRAW SCENE — stile NES Golf pixel art
+═══════════════════════════════════════════════════════ */
 function drawScene() {
-  const h = HOLES[holeIdx];
+  const s = SHOTS[shotIdx];
   ctx.clearRect(0, 0, W, H);
+
   drawSky();
   drawSun();
+  drawMountains();
   drawClouds();
-  drawDistantTrees();
-  drawFairway3D();
-  drawBunkers3D();
-  drawRough3D();
-  drawGreen3D(h);
-  drawFlagPin3D(h);
-  drawShadow3D();
+  drawForestLeft();
+  drawForestRight();
+  drawFairway();
+  drawLake();
+  drawBunkers();
+  drawGreenAndHole(s);
   drawTeeBox();
-  if (ballVisible) drawBallTrail();
-  if (ballVisible) drawBall3D();
-  drawZally3D(h);
+  drawBallTrail();
+  if (ballActive || phase === 'result') drawBall();
+  drawZally(s);
+  drawVignette();
 }
 
 /* ── SKY ── */
 function drawSky() {
-  const g = ctx.createLinearGradient(0, 0, 0, H * 0.52);
-  g.addColorStop(0, '#0d2035');
-  g.addColorStop(0.5, '#1a4a7a');
-  g.addColorStop(1, '#3a7ab5');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H * 0.52);
-}
-
-function drawSun() {
-  const sx = W * 0.82, sy = H * 0.12;
-  // Corona
-  const cg = ctx.createRadialGradient(sx, sy, 4, sx, sy, 55);
-  cg.addColorStop(0, 'rgba(255,240,160,0.22)');
-  cg.addColorStop(1, 'rgba(255,200,60,0)');
-  ctx.fillStyle = cg;
-  ctx.beginPath(); ctx.arc(sx, sy, 55, 0, Math.PI * 2); ctx.fill();
-  // Sole
-  ctx.fillStyle = '#ffe87a';
-  ctx.beginPath(); ctx.arc(sx, sy, 18, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#fff9cc';
-  ctx.beginPath(); ctx.arc(sx - 4, sy - 4, 7, 0, Math.PI * 2); ctx.fill();
-}
-
-/* ── CLOUDS ── */
-function drawClouds() {
-  const defs = [
-    { bx: 60, y: H * 0.10, w: 120, h: 32 },
-    { bx: 260, y: H * 0.07, w: 90, h: 24 },
-    { bx: 440, y: H * 0.12, w: 140, h: 36 },
-    { bx: 680, y: H * 0.08, w: 100, h: 28 },
-    { bx: 850, y: H * 0.14, w: 80, h: 22 },
+  // Cielo sfumato stile NES: bande orizzontali di colore
+  const bands = [
+    [0,    H*0.14, '#5ba8d8'],
+    [H*0.14, H*0.22, '#6cb4e0'],
+    [H*0.22, H*0.36, '#7dc0e8'],
+    [H*0.36, H*0.50, '#92ccee'],
   ];
-  ctx.fillStyle = 'rgba(255,255,255,0.88)';
-  defs.forEach(c => {
-    const ox = ((c.bx + cloudOffset * 0.35) % (W + 200)) - 100;
-    drawCloud(ox, c.y, c.w, c.h);
+  bands.forEach(([y0,y1,c]) => {
+    ctx.fillStyle = c;
+    ctx.fillRect(0, y0, W, y1 - y0);
   });
 }
 
-function drawCloud(x, y, w, h) {
+/* ── SOLE ── */
+function drawSun() {
+  const sx = W*0.84, sy = H*0.10;
+  ctx.fillStyle = '#fff9a0';
+  // pixel art sun: blocchi 4×4
+  const blocks = [
+    [0,0],[1,0],[2,0],
+    [0,1],[1,1],[2,1],
+    [0,2],[1,2],[2,2],
+  ];
+  const bs = 7;
+  blocks.forEach(([bx_,by_]) => {
+    ctx.fillRect(sx + bx_*bs - bs, sy + by_*bs - bs, bs-1, bs-1);
+  });
+  // raggi pixel
+  ctx.fillStyle = '#fff060';
+  [[sx+22,sy+4],[sx+24,sy+12],[sx+4,sy+22],[sx-6,sy+18],[sx-10,sy+5]].forEach(([rx,ry]) => {
+    ctx.fillRect(rx, ry, 4, 4);
+  });
+}
+
+/* ── MONTAGNE SFONDO ── */
+function drawMountains() {
+  const horizon = H * 0.48;
+  // montagne lontane (blu/viola, stile NES)
+  const mts = [
+    {x:50, h:70, c:'#6a7aaa'},
+    {x:160, h:90, c:'#5a6a9a'},
+    {x:300, h:60, c:'#6a7aaa'},
+    {x:420, h:80, c:'#5a6a9a'},
+    {x:580, h:55, c:'#7080b0'},
+    {x:700, h:75, c:'#6070a0'},
+    {x:820, h:65, c:'#5a6a9a'},
+  ];
+  mts.forEach(m => {
+    ctx.fillStyle = m.c;
+    ctx.beginPath();
+    ctx.moveTo(m.x, horizon);
+    ctx.lineTo(m.x + 60, horizon - m.h);
+    ctx.lineTo(m.x + 120, horizon);
+    ctx.closePath(); ctx.fill();
+    // cima innevata
+    ctx.fillStyle = '#c8d8f0';
+    ctx.beginPath();
+    ctx.moveTo(m.x + 48, horizon - m.h * 0.55);
+    ctx.lineTo(m.x + 60, horizon - m.h);
+    ctx.lineTo(m.x + 72, horizon - m.h * 0.55);
+    ctx.closePath(); ctx.fill();
+  });
+}
+
+/* ── NUVOLE pixel art ── */
+function drawClouds() {
+  cloudX.forEach((cx, i) => {
+    const cy = [H*0.12, H*0.18, H*0.09, H*0.20, H*0.14][i];
+    const scale = [1.2, 0.9, 1.0, 1.3, 0.8][i];
+    pixelCloud(cx - 80, cy, scale);
+  });
+}
+
+function pixelCloud(x, y, sc) {
+  const S = Math.round(sc * 8);
+  const blocks = [
+    [1,1],[2,1],[3,1],[4,1],
+    [0,2],[1,2],[2,2],[3,2],[4,2],[5,2],
+    [0,3],[1,3],[2,3],[3,3],[4,3],[5,3],
+    [1,4],[2,4],[3,4],
+  ];
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  blocks.forEach(([bx_,by_]) => {
+    ctx.fillRect(x + bx_*S, y + by_*S, S-1, S-1);
+  });
+}
+
+/* ── FORESTA SINISTRA (densa, stile NES) ── */
+function drawForestLeft() {
+  const horizon = H * 0.48;
+  const groundBase = H * 0.72;
+
+  // striscia rough sinistra
+  ctx.fillStyle = '#1a5c1a';
   ctx.beginPath();
-  ctx.ellipse(x, y, w * 0.44, h * 0.55, 0, 0, Math.PI * 2);
-  ctx.ellipse(x - w * 0.22, y + h * 0.2, w * 0.3, h * 0.45, 0, 0, Math.PI * 2);
-  ctx.ellipse(x + w * 0.24, y + h * 0.16, w * 0.28, h * 0.42, 0, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.moveTo(0, horizon);
+  ctx.lineTo(W*0.22, horizon);
+  ctx.lineTo(W*0.08, groundBase);
+  ctx.lineTo(0, groundBase);
+  ctx.closePath(); ctx.fill();
+
+  // alberi pixel art — da lontano (piccoli) a vicino (grandi)
+  const trees = [
+    // [x, groundY, size, darkVariant]
+    {x:20,  y:horizon+2,  s:18, v:0},
+    {x:55,  y:horizon+5,  s:22, v:1},
+    {x:95,  y:horizon+8,  s:26, v:0},
+    {x:38,  y:horizon+14, s:28, v:1},
+    {x:130, y:horizon+18, s:20, v:0},
+    {x:12,  y:horizon+30, s:32, v:1},
+    {x:68,  y:horizon+28, s:36, v:0},
+    {x:110, y:horizon+35, s:30, v:1},
+    {x:30,  y:horizon+50, s:42, v:0},
+    {x:75,  y:horizon+52, s:44, v:1},
+    {x:125, y:horizon+55, s:40, v:0},
+    {x:8,   y:horizon+75, s:52, v:1},
+    {x:60,  y:horizon+78, s:56, v:0},
+    {x:115, y:horizon+80, s:50, v:1},
+  ];
+  trees.forEach(t => pixelTree(t.x, t.y, t.s, t.v));
 }
 
-/* ── DISTANT TREES ── */
-function drawDistantTrees() {
-  const horizon = H * 0.505;
-  // Treeline sinistra
-  ctx.fillStyle = '#0d3a1a';
-  for (let i = 0; i < 14; i++) {
-    const tx = i * 42 - 10;
-    const th = 28 + Math.sin(i * 2.3) * 12;
-    ctx.beginPath();
-    ctx.moveTo(tx, horizon);
-    ctx.lineTo(tx + 21, horizon - th);
-    ctx.lineTo(tx + 42, horizon);
-    ctx.fill();
-  }
-  ctx.fillStyle = '#0a2a12';
-  for (let i = 0; i < 8; i++) {
-    const tx = i * 60 + 5;
-    const th = 20 + Math.cos(i * 1.7) * 8;
-    ctx.beginPath();
-    ctx.moveTo(tx, horizon);
-    ctx.lineTo(tx + 18, horizon - th);
-    ctx.lineTo(tx + 36, horizon);
-    ctx.fill();
-  }
-  // Treeline destra
-  ctx.fillStyle = '#0d3a1a';
-  for (let i = 0; i < 10; i++) {
-    const tx = W - i * 50 - 10;
-    const th = 24 + Math.sin(i * 1.9) * 10;
-    ctx.beginPath();
-    ctx.moveTo(tx, horizon);
-    ctx.lineTo(tx - 18, horizon - th);
-    ctx.lineTo(tx - 36, horizon);
-    ctx.fill();
-  }
+/* ── FORESTA DESTRA ── */
+function drawForestRight() {
+  const horizon = H * 0.48;
+  const groundBase = H * 0.72;
+
+  ctx.fillStyle = '#1a5c1a';
+  ctx.beginPath();
+  ctx.moveTo(W, horizon);
+  ctx.lineTo(W*0.78, horizon);
+  ctx.lineTo(W*0.92, groundBase);
+  ctx.lineTo(W, groundBase);
+  ctx.closePath(); ctx.fill();
+
+  const trees = [
+    {x:W-30,  y:horizon+2,  s:16, v:1},
+    {x:W-65,  y:horizon+6,  s:20, v:0},
+    {x:W-105, y:horizon+10, s:24, v:1},
+    {x:W-45,  y:horizon+20, s:28, v:0},
+    {x:W-140, y:horizon+22, s:22, v:1},
+    {x:W-20,  y:horizon+35, s:34, v:0},
+    {x:W-80,  y:horizon+32, s:38, v:1},
+    {x:W-125, y:horizon+38, s:30, v:0},
+    {x:W-35,  y:horizon+55, s:44, v:1},
+    {x:W-90,  y:horizon+58, s:46, v:0},
+    {x:W-140, y:horizon+60, s:42, v:1},
+    {x:W-18,  y:horizon+80, s:54, v:0},
+    {x:W-75,  y:horizon+82, s:58, v:1},
+  ];
+  trees.forEach(t => pixelTree(t.x, t.y, t.s, t.v));
 }
 
-/* ── FAIRWAY 3D ── */
-function drawFairway3D() {
-  const horizon = H * 0.505;
+function pixelTree(x, y, s, variant) {
+  const trunkW = Math.max(3, s * 0.2);
+  const trunkH = s * 0.35;
+  // trunk
+  ctx.fillStyle = '#5a3a10';
+  ctx.fillRect(x - trunkW/2, y, trunkW, trunkH);
+  // fogliame a 3 livelli (triangoli pixel)
+  const greens = variant ? ['#1a6e1a','#228b22','#2aaa2a'] : ['#155015','#1a6a1a','#22882a'];
+  [0,1,2].forEach(lvl => {
+    const w = s * (1 - lvl*0.22);
+    const h = s * (0.45 + lvl*0.08);
+    const ty = y - h * (1.1 + lvl*0.6);
+    ctx.fillStyle = greens[lvl];
+    ctx.beginPath();
+    ctx.moveTo(x - w/2, ty + h);
+    ctx.lineTo(x, ty);
+    ctx.lineTo(x + w/2, ty + h);
+    ctx.closePath(); ctx.fill();
+    // highlight (1 pixel più chiaro)
+    ctx.fillStyle = greens[2];
+    ctx.beginPath();
+    ctx.moveTo(x - w*0.1, ty + h*0.3);
+    ctx.lineTo(x, ty);
+    ctx.lineTo(x + w*0.1, ty + h*0.3);
+    ctx.closePath(); ctx.fill();
+  });
+}
 
-  // Rough totale
-  const rg = ctx.createLinearGradient(0, horizon, 0, H);
-  rg.addColorStop(0, '#1a5c28');
-  rg.addColorStop(1, '#0e3316');
-  ctx.fillStyle = rg;
-  ctx.fillRect(0, horizon, W, H - horizon);
+/* ── FAIRWAY ── */
+function drawFairway() {
+  const horizon = H * 0.48;
 
-  // Fairway corridoio in prospettiva
-  // Il fairway si restringe verso l'orizzonte
-  const fwTopL = W * 0.32, fwTopR = W * 0.68; // larghezza all'orizzonte
-  const fwBotL = W * 0.02, fwBotR = W * 0.98;  // larghezza in primo piano (tutta la scena)
-
-  // Strisce alternanti (effetto tosaerba prospettico)
-  const nStripes = 12;
-  const col1 = '#27ae60', col2 = '#2ecc71';
+  // Erba da fairway principale (prospettiva NES: strisce orizzontali)
+  // ogni striscia è più larga man mano che scende
+  const nStripes = 16;
+  const c1 = '#27ae60', c2 = '#2ecc71';
   for (let i = 0; i < nStripes; i++) {
-    const t0 = i / nStripes, t1 = (i + 1) / nStripes;
+    const t0 = i / nStripes, t1 = (i+1) / nStripes;
     const y0 = horizon + (H - horizon) * t0;
     const y1 = horizon + (H - horizon) * t1;
-    const l0 = fwBotL + (fwTopL - fwBotL) * t0;
-    const r0 = fwBotR + (fwTopR - fwBotR) * t0;
-    const l1 = fwBotL + (fwTopL - fwBotL) * t1;
-    const r1 = fwBotR + (fwTopR - fwBotR) * t1;
-    ctx.fillStyle = i % 2 === 0 ? col1 : col2;
-    ctx.beginPath();
-    ctx.moveTo(l0, y0); ctx.lineTo(r0, y0);
-    ctx.lineTo(r1, y1); ctx.lineTo(l1, y1);
-    ctx.closePath(); ctx.fill();
+    // larghezza del corridoio fairway si allarga verso il basso
+    const fw = 0.56 + t0 * 0.44; // da 56% a 100% della larghezza
+    const lx = W * (0.5 - fw/2);
+    const rx = W * (0.5 + fw/2);
+    ctx.fillStyle = i % 2 === 0 ? c1 : c2;
+    ctx.fillRect(lx, y0, rx - lx, y1 - y0);
   }
 
-  // Ombra dei bordi del fairway (rough laterale che si vede)
-  ctx.fillStyle = 'rgba(0,0,0,0.18)';
-  // Sinistra
-  ctx.beginPath();
-  ctx.moveTo(0, horizon); ctx.lineTo(fwTopL, horizon);
-  ctx.lineTo(fwBotL, H); ctx.lineTo(0, H);
-  ctx.closePath(); ctx.fill();
-  // Destra
-  ctx.beginPath();
-  ctx.moveTo(W, horizon); ctx.lineTo(fwTopR, horizon);
-  ctx.lineTo(fwBotR, H); ctx.lineTo(W, H);
-  ctx.closePath(); ctx.fill();
-
-  // Linee di prospettiva (guide visive)
-  ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+  // Linee di marcatura del fairway (bianche, pixel art)
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
   ctx.lineWidth = 1;
-  for (let i = 1; i < 5; i++) {
-    const t = i / 5;
-    const lx = fwBotL + (fwTopL - fwBotL) * t;
-    const rx = fwBotR + (fwTopR - fwBotR) * t;
-    const y = horizon + (H - horizon) * t;
-    ctx.beginPath(); ctx.moveTo(lx, y); ctx.lineTo(rx, y); ctx.stroke();
-  }
-  // Linee laterali convergenti
-  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(fwBotL, H); ctx.lineTo(fwTopL, horizon); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(fwBotR, H); ctx.lineTo(fwTopR, horizon); ctx.stroke();
-}
-
-/* ── BUNKERS 3D ── */
-function drawBunkers3D() {
-  const horizon = H * 0.505;
-  // Bunker sinistro (zona mid)
-  ctx.fillStyle = '#c8a96e';
+  // linea centrale tratteggiata
+  ctx.setLineDash([8, 8]);
   ctx.beginPath();
-  ctx.ellipse(W * 0.28, H * 0.66, 42, 14, 0.1, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#a88040'; ctx.lineWidth = 1.5; ctx.stroke();
-  // Dettaglio sabbia
-  ctx.fillStyle = '#d4b87a';
-  ctx.beginPath();
-  ctx.ellipse(W * 0.28, H * 0.655, 30, 9, 0.05, 0, Math.PI * 2); ctx.fill();
-
-  // Bunker destro
-  ctx.fillStyle = '#c8a96e';
-  ctx.beginPath();
-  ctx.ellipse(W * 0.62, H * 0.635, 36, 12, -0.1, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#a88040'; ctx.lineWidth = 1.5; ctx.stroke();
-  ctx.fillStyle = '#d4b87a';
-  ctx.beginPath();
-  ctx.ellipse(W * 0.62, H * 0.63, 26, 8, -0.05, 0, Math.PI * 2); ctx.fill();
-}
-
-/* ── ROUGH LATERALE 3D ── */
-function drawRough3D() {
-  // Ciuffi d'erba alta ai lati del fairway
-  ctx.fillStyle = '#155a1e';
-  for (let i = 0; i < 18; i++) {
-    const t = i / 18;
-    const y = H * 0.51 + (H * 0.49) * t;
-    const xL = W * 0.02 + (W * 0.32 - W * 0.02) * t - 10 + Math.sin(i * 5.1) * 8;
-    const xR = W * 0.98 - (W * 0.98 - W * 0.68) * t + 10 - Math.sin(i * 4.3) * 8;
-    const sz = 4 + t * 8;
-    ctx.beginPath(); ctx.moveTo(xL, y); ctx.lineTo(xL - sz * 0.6, y - sz * 1.5); ctx.lineTo(xL + sz * 0.6, y - sz * 1.5); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(xR, y); ctx.lineTo(xR - sz * 0.6, y - sz * 1.5); ctx.lineTo(xR + sz * 0.6, y - sz * 1.5); ctx.closePath(); ctx.fill();
-  }
-}
-
-/* ── GREEN 3D ── */
-function drawGreen3D(h) {
-  const gx = W * 0.50, gy = H * 0.565;
-
-  // Ombra sotto il green
-  ctx.fillStyle = 'rgba(0,0,0,0.25)';
-  ctx.beginPath();
-  ctx.ellipse(gx, gy + 8, 72, 18, 0, 0, Math.PI * 2); ctx.fill();
-
-  // Green
-  const gg = ctx.createRadialGradient(gx - 10, gy - 8, 4, gx, gy, 62);
-  gg.addColorStop(0, '#3dda7a');
-  gg.addColorStop(0.6, '#2ecc68');
-  gg.addColorStop(1, '#1aaa4a');
-  ctx.fillStyle = gg;
-  ctx.beginPath();
-  ctx.ellipse(gx, gy, 68, 20, 0, 0, Math.PI * 2); ctx.fill();
-
-  // Bordo green
-  ctx.strokeStyle = '#1a8a3a'; ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.ellipse(gx, gy, 68, 20, 0, 0, Math.PI * 2); ctx.stroke();
-
-  // Highlight
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
-  ctx.beginPath();
-  ctx.ellipse(gx - 12, gy - 6, 28, 7, -0.3, 0, Math.PI * 2); ctx.fill();
-
-  // Buca
-  ctx.fillStyle = '#000';
-  ctx.beginPath();
-  ctx.ellipse(W * 0.72, gy + 2, 7, 3, 0, 0, Math.PI * 2); ctx.fill();
-}
-
-/* ── FLAG PIN 3D ── */
-function drawFlagPin3D(h) {
-  const fx = W * 0.72, fy = H * 0.565;
-
-  // Ombra asta
-  ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(fx + 3, fy); ctx.lineTo(fx + 8, fy - 60); ctx.stroke();
-
-  // Asta
-  ctx.strokeStyle = '#ddd'; ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy - 64); ctx.stroke();
-
-  // Bandiera
-  ctx.fillStyle = h.color;
-  ctx.beginPath();
-  ctx.moveTo(fx, fy - 64);
-  ctx.lineTo(fx + 30, fy - 53);
-  ctx.lineTo(fx, fy - 42);
-  ctx.closePath(); ctx.fill();
-  // Bordo bandiera
-  ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1;
+  ctx.moveTo(W*0.5, horizon); ctx.lineTo(W*0.5, H);
   ctx.stroke();
+  ctx.setLineDash([]);
+}
 
-  // Testo/icona sulla bandiera
-  ctx.fillStyle = 'rgba(255,255,255,0.9)';
-  ctx.font = '13px serif';
-  ctx.fillText(h.icon, fx + 5, fy - 50);
+/* ── LAGO (destra, in prospettiva) ── */
+function drawLake() {
+  const lakeX = W * 0.62, lakeY = H * 0.56;
 
-  // Numero buca
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(fx - 8, fy + 3, 16, 5);
-  ctx.fillStyle = '#fff';
-  ctx.font = '5px monospace';
+  // Ombra lago
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(lakeX + 4, lakeY + 4, 85, 26, -0.08, 0, Math.PI*2); ctx.fill();
+
+  // Lago principale
+  const lakeGrad = ctx.createRadialGradient(lakeX-20, lakeY-8, 5, lakeX, lakeY, 88);
+  lakeGrad.addColorStop(0, '#4ab4e0');
+  lakeGrad.addColorStop(0.5, '#2a8ac0');
+  lakeGrad.addColorStop(1, '#1a6898');
+  ctx.fillStyle = lakeGrad;
+  ctx.beginPath();
+  ctx.ellipse(lakeX, lakeY, 84, 25, -0.08, 0, Math.PI*2); ctx.fill();
+
+  // Bordo lago (pixel art: linea scura)
+  ctx.strokeStyle = '#1a5a7a'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(lakeX, lakeY, 84, 25, -0.08, 0, Math.PI*2); ctx.stroke();
+
+  // Riflesso sole (shimmer)
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  // Piccoli blocchi pixel animati
+  const shimmerT = Math.sin(frameN * 0.08) * 0.5 + 0.5;
+  [[lakeX-20, lakeY-6],[lakeX+10, lakeY-2],[lakeX-5, lakeY+6],[lakeX+30, lakeY-8]].forEach(([rx,ry], i) => {
+    const a = Math.sin(frameN*0.1 + i*1.3) * 0.5 + 0.5;
+    ctx.globalAlpha = a * 0.7;
+    ctx.fillRect(rx, ry, 6, 3);
+  });
+  ctx.globalAlpha = 1;
+
+  // Piccole onde pixel
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1.5;
+  ctx.setLineDash([4,5]);
+  [[-30,-4],[0,-1],[25,5],[-15,8]].forEach(([ox,oy]) => {
+    ctx.beginPath();
+    ctx.arc(lakeX + ox, lakeY + oy, 10, 0.2, Math.PI-0.2); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+
+  // Testo "LAKE"
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '6px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText(`B${h.id}`, fx, fy + 8);
+  ctx.fillText('LAKE', lakeX, lakeY + 4);
   ctx.textAlign = 'left';
 }
 
-/* ── SHADOW GROUND ── */
-function drawShadow3D() {
-  // Gradiente di profondità sul fairway
-  const sg = ctx.createLinearGradient(0, H * 0.50, 0, H);
-  sg.addColorStop(0, 'rgba(0,0,0,0)');
-  sg.addColorStop(1, 'rgba(0,0,0,0.22)');
-  ctx.fillStyle = sg;
-  ctx.fillRect(0, H * 0.50, W, H * 0.50);
+/* ── COLLINETTE (bunkers + hills) ── */
+function drawBunkers() {
+  // Collinetta sinistra
+  const hg1 = ctx.createRadialGradient(W*0.28, H*0.62, 5, W*0.28, H*0.64, 52);
+  hg1.addColorStop(0, '#3ec870'); hg1.addColorStop(1, '#27ae60');
+  ctx.fillStyle = hg1;
+  ctx.beginPath(); ctx.ellipse(W*0.28, H*0.64, 52, 18, 0.1, 0, Math.PI*2); ctx.fill();
+
+  // Bunker sabbia SX
+  ctx.fillStyle = '#d4b06a';
+  ctx.beginPath(); ctx.ellipse(W*0.27, H*0.635, 30, 9, 0.05, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#e0c07a';
+  ctx.beginPath(); ctx.ellipse(W*0.265, H*0.63, 18, 5, 0, 0, Math.PI*2); ctx.fill();
+  // granelli sabbia (pixel)
+  ctx.fillStyle = '#c8a050';
+  for(let i=0;i<8;i++){
+    ctx.fillRect(W*0.24+i*7, H*0.632+Math.sin(i)*3, 3, 2);
+  }
+
+  // Collinetta centrale destra
+  const hg2 = ctx.createRadialGradient(W*0.6, H*0.60, 3, W*0.6, H*0.615, 38);
+  hg2.addColorStop(0, '#3ec870'); hg2.addColorStop(1, '#27ae60');
+  ctx.fillStyle = hg2;
+  ctx.beginPath(); ctx.ellipse(W*0.60, H*0.615, 38, 14, -0.1, 0, Math.PI*2); ctx.fill();
+
+  // Bunker sabbia DX (davanti al green)
+  ctx.fillStyle = '#d4b06a';
+  ctx.beginPath(); ctx.ellipse(W*0.43, H*0.60, 26, 8, 0.08, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#e0c07a';
+  ctx.beginPath(); ctx.ellipse(W*0.428, H*0.598, 15, 5, 0, 0, Math.PI*2); ctx.fill();
+}
+
+/* ── GREEN + BUCA ── */
+function drawGreenAndHole(s) {
+  const gx = W*0.5, gy = H*0.538;
+
+  // Ombra green
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.beginPath(); ctx.ellipse(gx+5, gy+7, 68, 19, 0, 0, Math.PI*2); ctx.fill();
+
+  // Green
+  const gg = ctx.createRadialGradient(gx-15, gy-8, 4, gx, gy, 65);
+  gg.addColorStop(0, '#44e878'); gg.addColorStop(0.6, '#2ecc68'); gg.addColorStop(1, '#1aaa50');
+  ctx.fillStyle = gg;
+  ctx.beginPath(); ctx.ellipse(gx, gy, 66, 19, 0, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#18883c'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(gx, gy, 66, 19, 0, 0, Math.PI*2); ctx.stroke();
+
+  // Highlight green
+  ctx.fillStyle = 'rgba(255,255,255,0.13)';
+  ctx.beginPath(); ctx.ellipse(gx-18, gy-5, 24, 7, -0.3, 0, Math.PI*2); ctx.fill();
+
+  // Buca
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(gx, gy+2, 7, 3, 0, 0, Math.PI*2); ctx.fill();
+
+  // Asta bandierina
+  ctx.strokeStyle = '#bbb'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(gx, gy+2); ctx.lineTo(gx, gy-58); ctx.stroke();
+
+  // Bandierina (pixel art)
+  ctx.fillStyle = s.color;
+  ctx.beginPath();
+  ctx.moveTo(gx, gy-58);
+  ctx.lineTo(gx+26, gy-49);
+  ctx.lineTo(gx, gy-40);
+  ctx.closePath(); ctx.fill();
+  // icona tecnica
+  ctx.font = '12px serif'; ctx.textAlign = 'center';
+  ctx.fillText(s.icon, gx+12, gy-46);
+  ctx.textAlign = 'left';
+  // numero buca
+  ctx.fillStyle = '#fff'; ctx.font = '5px monospace'; ctx.textAlign='center';
+  ctx.fillText('01', gx, gy+16);
+  ctx.textAlign='left';
 }
 
 /* ── TEE BOX ── */
 function drawTeeBox() {
-  const tx = W * 0.16, ty = H * 0.80;
-  // Piattaforma
-  ctx.fillStyle = '#33da6e';
-  ctx.beginPath(); ctx.ellipse(tx, ty, 52, 16, -0.05, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.ellipse(tx, ty, 52, 16, -0.05, 0, Math.PI * 2); ctx.stroke();
-  // Marcatori bianchi
+  const tx = W*0.5, ty = H*0.80;
+  // Piattaforma tee
+  ctx.fillStyle = '#33da70';
+  ctx.beginPath(); ctx.ellipse(tx, ty, 58, 17, 0, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(tx, ty, 58, 17, 0, 0, Math.PI*2); ctx.stroke();
+  // markers bianchi
   ctx.fillStyle = '#fff';
-  ctx.fillRect(tx - 38, ty - 4, 5, 8);
-  ctx.fillRect(tx + 33, ty - 4, 5, 8);
-  // Tee (bastoncino)
-  ctx.strokeStyle = '#f5c842'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(tx + 26, ty - 4); ctx.lineTo(tx + 26, ty - 14); ctx.stroke();
-  ctx.fillStyle = '#f5c842';
-  ctx.beginPath(); ctx.arc(tx + 26, ty - 14, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillRect(tx-44, ty-4, 5, 8);
+  ctx.fillRect(tx+39, ty-4, 5, 8);
+  // tee stick + pallina (prima del tiro)
+  if (phase === 'challenge' || phase === 'power') {
+    ctx.strokeStyle = '#f5c820'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(tx+2, ty-4); ctx.lineTo(tx+2, ty-14); ctx.stroke();
+    // pallina sul tee
+    const bg = ctx.createRadialGradient(tx, ty-16, 1, tx+2, ty-14, 5);
+    bg.addColorStop(0,'#fff'); bg.addColorStop(1,'#ccc');
+    ctx.fillStyle = bg;
+    ctx.beginPath(); ctx.arc(tx+2, ty-14, 5, 0, Math.PI*2); ctx.fill();
+  }
 }
 
-/* ── BALL TRAIL ── */
+/* ── TRAIL ── */
 function drawBallTrail() {
   trail.forEach((p, i) => {
-    const alpha = (i / trail.length) * 0.55;
-    const r = 1.5 + (i / trail.length) * 2;
-    ctx.fillStyle = `rgba(255,240,80,${alpha})`;
-    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
+    const a = (i / trail.length) * 0.5;
+    const r = 1.5 + (i / trail.length) * 2.5;
+    ctx.fillStyle = `rgba(255,240,80,${a})`;
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2); ctx.fill();
   });
 }
 
-/* ── BALL 3D ── */
-function drawBall3D() {
-  const distFactor = Math.max(0.3, 1 - (by - H * 0.51) / (H * 0.30) * 0.7);
-  const r = Math.max(2.5, 7 * distFactor);
-
-  // Ombra sotto la palla
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath();
-  ctx.ellipse(bx, perspGround(bx) + 2, r * 1.4, r * 0.5, 0, 0, Math.PI * 2); ctx.fill();
-
-  // Palla
-  const bg = ctx.createRadialGradient(bx - r * 0.25, by - r * 0.3, r * 0.1, bx, by, r);
-  bg.addColorStop(0, '#fff');
-  bg.addColorStop(0.5, '#e8e8e8');
-  bg.addColorStop(1, '#b0b0b0');
+/* ── PALLA ── */
+function drawBall() {
+  if (!bx) return;
+  const distT = Math.max(0.2, 1 - (by - H*0.50) / (H*0.35) * 0.8);
+  const r = Math.max(2, 6 * distT);
+  // ombra sotto
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.beginPath(); ctx.ellipse(bx, perspGround(bx)+2, r*1.5, r*0.5, 0, 0, Math.PI*2); ctx.fill();
+  // palla
+  const bg = ctx.createRadialGradient(bx-r*.25, by-r*.3, r*.1, bx, by, r);
+  bg.addColorStop(0,'#fff'); bg.addColorStop(.5,'#eee'); bg.addColorStop(1,'#aaa');
   ctx.fillStyle = bg;
-  ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.fill();
-  // Highlight
-  ctx.fillStyle = 'rgba(255,255,255,0.8)';
-  ctx.beginPath(); ctx.arc(bx - r * 0.25, by - r * 0.28, r * 0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI*2); ctx.fill();
+  // highlight
+  ctx.fillStyle='rgba(255,255,255,.75)';
+  ctx.beginPath(); ctx.arc(bx-r*.28, by-r*.3, r*.3, 0, Math.PI*2); ctx.fill();
 }
 
-/* ════════════════════════════════════════════════════════
-   ZALLY 3D — pixel art procedurale
-════════════════════════════════════════════════════════ */
-function drawZally3D(h) {
-  const zx = W * 0.12, zy = H * 0.80;
+/* ── VIGNETTE ── */
+function drawVignette() {
+  const vg = ctx.createRadialGradient(W/2,H/2,W*0.35,W/2,H/2,W*0.75);
+  vg.addColorStop(0,'rgba(0,0,0,0)');
+  vg.addColorStop(1,'rgba(0,0,0,0.42)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0,0,W,H);
+}
 
+/* ═══════════════════ ZALLY (centrale, grande) ═══════════════════ */
+function drawZally(s) {
+  const zx = W * 0.5 - 22; // centrata
+  const zy = H * 0.90;     // in basso vicino allo schermo
   ctx.save();
   ctx.translate(zx, zy);
 
   // ── Ombra ──
-  ctx.fillStyle = 'rgba(0,0,0,0.28)';
-  ctx.beginPath(); ctx.ellipse(12, 4, 26, 8, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.30)';
+  ctx.beginPath(); ctx.ellipse(22, 2, 32, 10, 0, 0, Math.PI*2); ctx.fill();
 
   // ── Scarpe ──
-  ctx.fillStyle = '#1a1a2e';
-  ctx.beginPath(); ctx.roundRect(-6, 70, 14, 8, 2); ctx.fill();
-  ctx.beginPath(); ctx.roundRect(16, 70, 14, 8, 2); ctx.fill();
-  // suola
-  ctx.fillStyle = '#e74c3c';
-  ctx.fillRect(-7, 76, 15, 3);
-  ctx.fillRect(15, 76, 15, 3);
+  ctx.fillStyle = '#111';
+  roundRect(ctx, -8, 88, 18, 10, 2);
+  roundRect(ctx, 22, 88, 18, 10, 2);
+  ctx.fillStyle = '#e74c3c'; // suola rossa
+  ctx.fillRect(-9, 96, 19, 3);
+  ctx.fillRect(21, 96, 19, 3);
 
-  // ── Gambe ──
-  ctx.fillStyle = '#2c3e50';
-  ctx.beginPath(); ctx.roundRect(-4, 46, 13, 28, 2); ctx.fill();
-  ctx.beginPath(); ctx.roundRect(15, 46, 13, 28, 2); ctx.fill();
-  // piega ginocchio
-  ctx.fillStyle = '#243342';
-  ctx.fillRect(-3, 60, 12, 4);
-  ctx.fillRect(16, 60, 12, 4);
+  // ── Calzini bianchi ──
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(-5, 82, 12, 8);
+  ctx.fillRect(25, 82, 12, 8);
 
-  // ── Corpo ──
-  const bodyG = ctx.createLinearGradient(0, 18, 30, 58);
-  bodyG.addColorStop(0, '#e74c3c');
-  bodyG.addColorStop(0.4, '#c0392b');
-  bodyG.addColorStop(1, '#962d22');
+  // ── Pantaloni (blu navy) ──
+  ctx.fillStyle = '#1a2a5a';
+  roundRect(ctx, -6, 56, 13, 30, 2);
+  roundRect(ctx, 23, 56, 13, 30, 2);
+  // piega al ginocchio
+  ctx.fillStyle = '#141e42';
+  ctx.fillRect(-5, 71, 12, 4);
+  ctx.fillRect(24, 71, 12, 4);
+
+  // ── Corpo (polo/giacca da golf) ──
+  const bodyG = ctx.createLinearGradient(0, 20, 44, 60);
+  bodyG.addColorStop(0, '#e8e8e8');
+  bodyG.addColorStop(0.3, '#d0d8e8');
+  bodyG.addColorStop(1, '#a8b8cc');
   ctx.fillStyle = bodyG;
-  ctx.beginPath(); ctx.roundRect(0, 18, 28, 30, 3); ctx.fill();
+  roundRect(ctx, 0, 20, 44, 38, 3);
 
-  // Logo Z sul petto
-  ctx.fillStyle = 'rgba(255,255,255,0.9)';
-  ctx.font = 'bold 10px monospace';
-  ctx.fillText('Z', 10, 36);
+  // Dettagli giacca: bordi blu
+  ctx.fillStyle = '#1a2a5a';
+  ctx.fillRect(0, 20, 5, 38);   // bordo sx
+  ctx.fillRect(39, 20, 5, 38);  // bordo dx
+  ctx.fillRect(0, 54, 44, 4);   // bordo basso
 
-  // cintura
-  ctx.fillStyle = '#1a252f';
-  ctx.fillRect(0, 44, 28, 4);
-  // fibbia
-  ctx.fillStyle = '#f1c40f';
-  ctx.fillRect(10, 44, 8, 4);
+  // Bottoni
+  ctx.fillStyle = '#1a2a5a';
+  [28,34,40].forEach(y => {
+    ctx.beginPath(); ctx.arc(22, y, 1.5, 0, Math.PI*2); ctx.fill();
+  });
 
-  // ── Braccia & Mazza ──
-  if (zallyState === 'backswing') {
-    // Braccio SX su, mazza dietro
-    ctx.fillStyle = '#f9c49a'; ctx.beginPath(); ctx.roundRect(-10, 20, 10, 22, 2); ctx.fill();
-    ctx.fillStyle = '#f9c49a'; ctx.beginPath(); ctx.roundRect(28, 30, 10, 18, 2); ctx.fill();
-    ctx.save(); ctx.translate(-10, 18); ctx.rotate(-1.4);
-    ctx.strokeStyle = '#888'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 48); ctx.stroke();
-    ctx.fillStyle = '#555'; ctx.beginPath(); ctx.roundRect(-4, 45, 10, 7, 1); ctx.fill();
+  // Colletto polo
+  ctx.fillStyle = '#e8e8e8';
+  ctx.beginPath();
+  ctx.moveTo(14, 20); ctx.lineTo(22, 26); ctx.lineTo(30, 20);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#1a2a5a';
+  ctx.beginPath();
+  ctx.moveTo(16, 20); ctx.lineTo(22, 24); ctx.lineTo(28, 20);
+  ctx.closePath(); ctx.fill();
+
+  // ── Braccia ──
+  const swing = zallyState;
+  if (swing === 'backswing') {
+    // Braccio SX in alto, DX in basso
+    ctx.fillStyle = '#e8e8e8';
+    roundRect(ctx, -14, 16, 14, 10, 2);
+    roundRect(ctx, 44, 28, 14, 10, 2);
+    // mani
+    ctx.fillStyle = '#f0c890'; roundRect(ctx, -14, 26, 10, 8, 2); roundRect(ctx, 44, 26, 10, 8, 2);
+    // mazza — dietro (backswing)
+    ctx.save(); ctx.translate(-8, 26); ctx.rotate(-1.3);
+    ctx.strokeStyle='#888'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,54); ctx.stroke();
+    ctx.fillStyle='#444'; roundRect(ctx, -4,50,10,8,1);
     ctx.restore();
-  } else if (zallyState === 'swing' || zallyState === 'follow') {
-    ctx.fillStyle = '#f9c49a'; ctx.beginPath(); ctx.roundRect(-10, 26, 10, 20, 2); ctx.fill();
-    ctx.fillStyle = '#f9c49a'; ctx.beginPath(); ctx.roundRect(28, 22, 10, 20, 2); ctx.fill();
-    ctx.save(); ctx.translate(35, 20); ctx.rotate(0.5);
-    ctx.strokeStyle = '#888'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 52); ctx.stroke();
-    ctx.fillStyle = '#555'; ctx.beginPath(); ctx.roundRect(-4, 49, 10, 7, 1); ctx.fill();
+  } else if (swing === 'swing') {
+    ctx.fillStyle = '#e8e8e8';
+    roundRect(ctx, -12, 22, 14, 10, 2);
+    roundRect(ctx, 42, 22, 14, 10, 2);
+    ctx.fillStyle = '#f0c890'; roundRect(ctx, -12, 30, 10, 8, 2); roundRect(ctx, 42, 30, 10, 8, 2);
+    // mazza — impatto
+    ctx.save(); ctx.translate(44, 28); ctx.rotate(0.6);
+    ctx.strokeStyle='#888'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,54); ctx.stroke();
+    ctx.fillStyle='#444'; roundRect(ctx, -4,50,10,8,1);
     ctx.restore();
-    // Effetto swing
-    if (zallyState === 'swing') {
-      ctx.strokeStyle = 'rgba(255,255,100,0.4)'; ctx.lineWidth = 2;
-      ctx.setLineDash([3, 4]);
-      ctx.beginPath(); ctx.arc(28, 42, 30, -1.8, -0.2); ctx.stroke();
-      ctx.setLineDash([]);
-    }
+    // effetto swing arc
+    ctx.strokeStyle='rgba(255,255,80,.35)'; ctx.lineWidth=2;
+    ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.arc(22, 50, 38, -1.6, -0.2); ctx.stroke();
+    ctx.setLineDash([]);
+  } else if (swing === 'follow') {
+    ctx.fillStyle = '#e8e8e8';
+    roundRect(ctx, -10, 18, 14, 10, 2);
+    roundRect(ctx, 40, 20, 14, 10, 2);
+    ctx.fillStyle = '#f0c890'; roundRect(ctx, -10, 26, 10, 8, 2); roundRect(ctx, 40, 26, 10, 8, 2);
+    ctx.save(); ctx.translate(42, 22); ctx.rotate(1.1);
+    ctx.strokeStyle='#888'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,54); ctx.stroke();
+    ctx.fillStyle='#444'; roundRect(ctx, -4,50,10,8,1);
+    ctx.restore();
   } else {
-    // Idle: mazza tenuta dal fianco
-    ctx.fillStyle = '#f9c49a'; ctx.beginPath(); ctx.roundRect(-10, 22, 10, 24, 2); ctx.fill();
-    ctx.fillStyle = '#f9c49a'; ctx.beginPath(); ctx.roundRect(28, 22, 10, 24, 2); ctx.fill();
-    ctx.strokeStyle = '#888'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(36, 28); ctx.lineTo(44, 74); ctx.stroke();
-    ctx.fillStyle = '#555'; ctx.beginPath(); ctx.roundRect(40, 72, 10, 7, 1); ctx.fill();
+    // idle
+    ctx.fillStyle = '#e8e8e8';
+    roundRect(ctx, -10, 22, 12, 30, 2); // SX
+    roundRect(ctx, 42, 22, 12, 30, 2); // DX
+    ctx.fillStyle = '#f0c890';
+    roundRect(ctx, -9, 48, 10, 8, 2);
+    roundRect(ctx, 43, 48, 10, 8, 2);
+    // mazza a riposo
+    ctx.strokeStyle='#888'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(50,52); ctx.lineTo(58,98); ctx.stroke();
+    ctx.fillStyle='#444'; roundRect(ctx, 54,96,8,8,1);
   }
 
   // ── Testa ──
-  const headG = ctx.createRadialGradient(12, -12, 2, 14, -10, 20);
-  headG.addColorStop(0, '#fad4a4');
-  headG.addColorStop(1, '#e8b882');
+  const headG = ctx.createRadialGradient(18,-14,2,22,-10,22);
+  headG.addColorStop(0,'#fce4c0'); headG.addColorStop(1,'#f0c890');
   ctx.fillStyle = headG;
-  ctx.beginPath(); ctx.ellipse(14, -10, 16, 18, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(22,-10,18,20,0,0,Math.PI*2); ctx.fill();
 
-  // Capelli
-  ctx.fillStyle = '#2c1608';
-  ctx.beginPath(); ctx.ellipse(14, -24, 15, 10, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(-2, -20); ctx.quadraticCurveTo(-8, -30, -2, -34); ctx.quadraticCurveTo(4, -28, 0, -20);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(30, -20); ctx.quadraticCurveTo(36, -28, 30, -32); ctx.quadraticCurveTo(24, -26, 28, -20);
-  ctx.fill();
+  // Capelli (sotto il cappello)
+  ctx.fillStyle = '#3a2010';
+  ctx.beginPath(); ctx.ellipse(22,-26,17,10,0,0,Math.PI*2); ctx.fill();
 
-  // Occhi
+  // ── Cappello da golf ──
   ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.ellipse(8, -12, 5, 5.5, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(20, -12, 5, 5.5, 0, 0, Math.PI * 2); ctx.fill();
-  // Pupille
-  ctx.fillStyle = '#1a1a2e';
-  ctx.beginPath(); ctx.arc(9, -11, 3, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(21, -11, 3, 0, Math.PI * 2); ctx.fill();
-  // Riflesso occhi
+  roundRect(ctx, 6,-38,32,14,2);
   ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(10, -12, 1.2, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(22, -12, 1.2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(22,-38,18,7,0,0,Math.PI*2); ctx.fill();
+  // visiera
+  ctx.fillStyle = '#ddd';
+  ctx.beginPath();
+  ctx.moveTo(5,-28); ctx.quadraticCurveTo(-6,-22,-2,-20); ctx.quadraticCurveTo(4,-22,6,-28);
+  ctx.closePath(); ctx.fill();
+  // logo Z sul cappello
+  ctx.fillStyle = s.color;
+  ctx.font = 'bold 9px monospace'; ctx.textAlign='center';
+  ctx.fillText('Z', 22, -28);
+  ctx.textAlign='left';
+
+  // ── Occhi ──
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.ellipse(16,-12,5.5,6,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(28,-12,5.5,6,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#1a1a1a';
+  ctx.beginPath(); ctx.arc(17,-11,3.2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(29,-11,3.2,0,Math.PI*2); ctx.fill();
+  // highlight occhi
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(18,-12.5,1.3,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(30,-12.5,1.3,0,Math.PI*2); ctx.fill();
 
   // Sopracciglia
-  ctx.strokeStyle = '#2c1608'; ctx.lineWidth = 2; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(4, -19); ctx.lineTo(13, -18); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(16, -18); ctx.lineTo(25, -19); ctx.stroke();
+  ctx.strokeStyle='#3a2010'; ctx.lineWidth=1.8; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(10,-20); ctx.lineTo(21,-19); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(23,-19); ctx.lineTo(34,-20); ctx.stroke();
 
-  // Naso & bocca
-  ctx.fillStyle = '#e0a070';
-  ctx.beginPath(); ctx.ellipse(14, -7, 3, 2.5, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 1.8;
-  ctx.beginPath(); ctx.arc(14, -3, 5, 0.15, Math.PI - 0.15); ctx.stroke();
+  // Naso
+  ctx.fillStyle='#e0a878';
+  ctx.beginPath(); ctx.ellipse(22,-6,3.5,2.5,0,0,Math.PI*2); ctx.fill();
+
+  // Bocca
+  ctx.strokeStyle='#c0392b'; ctx.lineWidth=1.8;
+  ctx.beginPath(); ctx.arc(22,-1,5.5,0.15,Math.PI-0.15); ctx.stroke();
 
   // Guance rosate
-  ctx.fillStyle = 'rgba(255,100,80,0.18)';
-  ctx.beginPath(); ctx.ellipse(5, -6, 5, 3.5, -0.2, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(23, -6, 5, 3.5, 0.2, 0, Math.PI * 2); ctx.fill();
-
-  // Cappellino golf
-  ctx.fillStyle = h.color;
-  ctx.beginPath();
-  ctx.ellipse(14, -26, 15, 8, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillRect(0, -30, 28, 8);
-  ctx.beginPath(); ctx.roundRect(-1, -32, 30, 8, 2); ctx.fill();
-  // Visiera
-  ctx.fillStyle = '#1a1a2e';
-  ctx.beginPath();
-  ctx.moveTo(-2, -24); ctx.quadraticCurveTo(-10, -20, -6, -18); ctx.quadraticCurveTo(0, -20, 0, -24);
-  ctx.closePath(); ctx.fill();
-  // Logo sul cappellino
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 8px monospace';
-  ctx.fillText('G', 10, -26);
+  ctx.fillStyle='rgba(255,100,80,0.2)';
+  ctx.beginPath(); ctx.ellipse(10,-6,5,3.5,-0.2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(34,-6,5,3.5,0.2,0,Math.PI*2); ctx.fill();
 
   ctx.restore();
 }
 
-/* ════════════════════════════════════════════════════════
-   STARS FX
-════════════════════════════════════════════════════════ */
+/* helper roundRect cross-browser */
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.lineTo(x + w - r, y);
+  c.quadraticCurveTo(x + w, y, x + w, y + r);
+  c.lineTo(x + w, y + h - r);
+  c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  c.lineTo(x + r, y + h);
+  c.quadraticCurveTo(x, y + h, x, y + h - r);
+  c.lineTo(x, y + r);
+  c.quadraticCurveTo(x, y, x + r, y);
+  c.closePath();
+  c.fill();
+}
+
+/* ═══════════════════ FX ═══════════════════ */
 function spawnStars(n) {
-  const container = document.getElementById('game');
+  const emojis = ['⭐','✨','🌟','💫','🎉','⛳'];
   for (let i = 0; i < n * 3; i++) {
     const el = document.createElement('div');
-    const emojis = ['⭐','✨','🌟','💫','🎉'];
     el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
     el.style.cssText = `
-      position:absolute;font-size:${16 + Math.random() * 14}px;
-      left:${10 + Math.random() * 80}%;top:${10 + Math.random() * 55}%;
-      pointer-events:none;z-index:65;
-      animation:starFlyKf 1.3s ${Math.random() * 0.4}s ease-out forwards;
+      position:absolute;font-size:${14+Math.random()*16}px;
+      left:${8+Math.random()*84}%;top:${8+Math.random()*55}%;
+      pointer-events:none;z-index:55;
+      animation:starFly 1.4s ${Math.random()*.5}s ease-out forwards;
     `;
-    container.appendChild(el);
-    setTimeout(() => el.remove(), 1800);
+    document.getElementById('game').appendChild(el);
+    setTimeout(() => el.remove(), 2000);
   }
 }
-const starStyle = document.createElement('style');
-starStyle.textContent = '@keyframes starFlyKf{0%{transform:scale(0) rotate(0);opacity:1;}100%{transform:scale(1.5) rotate(360deg) translateY(-55px);opacity:0;}}';
-document.head.appendChild(starStyle);
 
-/* ════════════════════════════════════════════════════════
-   AUDIO PROCEDURALE
-════════════════════════════════════════════════════════ */
-function newAC() {
-  try { return new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; }
+/* ═══════════════════ AUDIO ═══════════════════ */
+function ac() {
+  try { return new (window.AudioContext||window.webkitAudioContext)(); } catch(e){return null;}
 }
-function playSwingSound() {
-  const a = newAC(); if (!a) return;
+function playSwing() {
+  const a = ac(); if(!a)return;
   const o = a.createOscillator(), g = a.createGain();
   o.connect(g); g.connect(a.destination);
-  o.type = 'sawtooth';
-  o.frequency.setValueAtTime(280, a.currentTime);
-  o.frequency.exponentialRampToValueAtTime(55, a.currentTime + 0.2);
-  g.gain.setValueAtTime(0.35, a.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.2);
-  o.start(); o.stop(a.currentTime + 0.2);
+  o.type='sawtooth'; o.frequency.setValueAtTime(320,a.currentTime);
+  o.frequency.exponentialRampToValueAtTime(55,a.currentTime+0.22);
+  g.gain.setValueAtTime(0.35,a.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.22);
+  o.start(); o.stop(a.currentTime+0.22);
 }
-function playLandSound() {
-  const a = newAC(); if (!a) return;
-  const buf = a.createBuffer(1, a.sampleRate * 0.12, a.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (a.sampleRate * 0.032));
-  const s = a.createBufferSource(); s.buffer = buf;
-  const g = a.createGain(); g.gain.value = 0.22;
+function playLand() {
+  const a = ac(); if(!a)return;
+  const buf=a.createBuffer(1,a.sampleRate*.1,a.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(a.sampleRate*.028));
+  const s=a.createBufferSource(); s.buffer=buf;
+  const g=a.createGain(); g.gain.value=0.22;
   s.connect(g); g.connect(a.destination); s.start();
 }
-function playResultSound(delta) {
-  const a = newAC(); if (!a) return;
-  const notes = delta < 0 ? [523, 659, 784, 1047] : delta === 0 ? [392, 440] : [220, 196];
-  notes.forEach((f, i) => {
-    const o = a.createOscillator(), g = a.createGain();
+function playResult(delta) {
+  const a = ac(); if(!a)return;
+  const notes = delta<0 ? [523,659,784,1047] : delta===0 ? [392,494] : [220,185];
+  notes.forEach((f,i)=>{
+    const o=a.createOscillator(),g=a.createGain();
     o.connect(g); g.connect(a.destination);
-    o.type = 'square'; o.frequency.value = f;
-    g.gain.setValueAtTime(0, a.currentTime + i * 0.13);
-    g.gain.linearRampToValueAtTime(0.14, a.currentTime + i * 0.13 + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + i * 0.13 + 0.11);
-    o.start(a.currentTime + i * 0.13);
-    o.stop(a.currentTime + i * 0.13 + 0.12);
+    o.type='square'; o.frequency.value=f;
+    g.gain.setValueAtTime(0,a.currentTime+i*.12);
+    g.gain.linearRampToValueAtTime(.14,a.currentTime+i*.12+.02);
+    g.gain.exponentialRampToValueAtTime(.001,a.currentTime+i*.12+.1);
+    o.start(a.currentTime+i*.12); o.stop(a.currentTime+i*.12+.11);
   });
 }
-function playVictorySound() {
-  const a = newAC(); if (!a) return;
-  [523, 659, 784, 880, 1047, 1175, 1319, 1047, 1319].forEach((f, i) => {
-    const o = a.createOscillator(), g = a.createGain();
+function playHoleIn() {
+  const a = ac(); if(!a)return;
+  [523,659,784,659,1047,1319].forEach((f,i)=>{
+    const o=a.createOscillator(),g=a.createGain();
     o.connect(g); g.connect(a.destination);
-    o.type = 'square'; o.frequency.value = f;
-    g.gain.setValueAtTime(0, a.currentTime + i * 0.11);
-    g.gain.linearRampToValueAtTime(0.13, a.currentTime + i * 0.11 + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + i * 0.11 + 0.09);
-    o.start(a.currentTime + i * 0.11);
-    o.stop(a.currentTime + i * 0.11 + 0.1);
+    o.type='square'; o.frequency.value=f;
+    g.gain.setValueAtTime(0,a.currentTime+i*.1);
+    g.gain.linearRampToValueAtTime(.16,a.currentTime+i*.1+.02);
+    g.gain.exponentialRampToValueAtTime(.001,a.currentTime+i*.1+.09);
+    o.start(a.currentTime+i*.1); o.stop(a.currentTime+i*.1+.1);
+  });
+}
+function playVictory() {
+  const a = ac(); if(!a)return;
+  [523,659,784,880,1047,1175,1319,1047,1319,1568].forEach((f,i)=>{
+    const o=a.createOscillator(),g=a.createGain();
+    o.connect(g); g.connect(a.destination);
+    o.type='square'; o.frequency.value=f;
+    g.gain.setValueAtTime(0,a.currentTime+i*.1);
+    g.gain.linearRampToValueAtTime(.13,a.currentTime+i*.1+.02);
+    g.gain.exponentialRampToValueAtTime(.001,a.currentTime+i*.1+.09);
+    o.start(a.currentTime+i*.1); o.stop(a.currentTime+i*.1+.1);
   });
 }
 
-/* ════════════════════════════════════════════════════════
-   START
-════════════════════════════════════════════════════════ */
-window.addEventListener('load', init);
+/* ═══════════════════════════════════════════════════════════
+   EMAIL HTML — usata da Code.gs in Apps Script
+   Qui sotto è la funzione stub. In Apps Script va rimossa
+   e sostituita dal Code.gs allegato.
+═══════════════════════════════════════════════════════════ */
+/*
+  [SOLO PER GITHUB — viene ignorata nel browser]
+  In Google Apps Script, aggiungi in Code.gs:
+
+  function sendCompletionEmail() {
+    const recipient = Session.getActiveUser().getEmail();
+    const subject = "⛳ Hole Complete: You're a Prompt Engineering Pro!";
+    const body = buildEmailBody();
+    MailApp.sendEmail({ to: recipient, subject: subject, htmlBody: body });
+  }
+
+  function buildEmailBody() {
+    return `
+    <!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+    <div style="max-width:600px;margin:0 auto;background:#fff;">
+
+      <!-- HEADER -->
+      <div style="background:#1a3a6a;padding:32px 24px;text-align:center;">
+        <div style="font-size:48px;">⛳</div>
+        <h1 style="color:#f1c40f;font-size:22px;margin:12px 0 4px;font-family:monospace;letter-spacing:2px;">HOLE COMPLETE!</h1>
+        <p style="color:#7ab0e0;font-size:13px;margin:0;">Zally Golf Club · Prompt Engineering · All 4 shots cleared</p>
+      </div>
+
+      <!-- INTRO -->
+      <div style="padding:24px;border-bottom:1px solid #eee;">
+        <p style="color:#333;font-size:14px;line-height:1.7;">
+          You just played a full round of <b>Prompt Engineering</b> — and honestly? Your swing is immaculate. 🏌️<br><br>
+          You didn't just answer quiz questions. You learned 4 techniques that will make every Gemini interaction
+          sharper, faster, and more useful. Here's your <b>caddie debrief</b>:
+        </p>
+      </div>
+
+      <!-- SHOT 1 -->
+      <div style="padding:20px 24px;border-left:4px solid #e74c3c;margin:16px 24px 0;background:#fff8f8;border-radius:0 6px 6px 0;">
+        <div style="font-size:11px;color:#e74c3c;font-weight:bold;margin-bottom:6px;letter-spacing:1px;">🎭 SHOT 1 — ROLE-PLAYING</div>
+        <p style="color:#444;font-size:13px;line-height:1.7;margin:0;">
+          Stop talking to a generic chatbot. Assign Gemini a precise role — job title, experience, behavioral rules.
+          <b>A CFO with 20 years and zero tolerance for excuses</b> will give you a completely different (and far more useful)
+          response than "professional assistant". The persona IS the prompt.
+        </p>
+        <div style="margin-top:10px;background:#fff;border:1px solid #f5c6cb;padding:8px 12px;border-radius:4px;font-size:12px;color:#666;font-style:italic;">
+          💡 Try it: <i>"Act as a Senior Operations Manager with 15 years in logistics. Review this process and flag every inefficiency — no sugar-coating."</i>
+        </div>
+      </div>
+
+      <!-- SHOT 2 -->
+      <div style="padding:20px 24px;border-left:4px solid #3498db;margin:12px 24px 0;background:#f4f8ff;border-radius:0 6px 6px 0;">
+        <div style="font-size:11px;color:#3498db;font-weight:bold;margin-bottom:6px;letter-spacing:1px;">🌍 SHOT 2 — CONTEXT-AWARE</div>
+        <p style="color:#444;font-size:13px;line-height:1.7;margin:0;">
+          Gemini isn't a mind reader — it's a mirror. <b>The quality of the output reflects the richness of your input.</b>
+          Operational context (timing, constraints, real numbers) is the difference between a textbook answer and a field-ready solution.
+          Brief Gemini like you'd brief a new team member on their first emergency shift.
+        </p>
+        <div style="margin-top:10px;background:#fff;border:1px solid #bee3f8;padding:8px 12px;border-radius:4px;font-size:12px;color:#666;font-style:italic;">
+          💡 Try it: <i>"It's Black Friday eve. 12 drivers are out sick. Hub capacity at 60%. Given these constraints, how do I prioritise the next 6 hours?"</i>
+        </div>
+      </div>
+
+      <!-- SHOT 3 -->
+      <div style="padding:20px 24px;border-left:4px solid #e67e22;margin:12px 24px 0;background:#fff8f0;border-radius:0 6px 6px 0;">
+        <div style="font-size:11px;color:#e67e22;font-weight:bold;margin-bottom:6px;letter-spacing:1px;">🚫 SHOT 3 — NEGATIVE PROMPTING</div>
+        <p style="color:#444;font-size:13px;line-height:1.7;margin:0;">
+          Sometimes the most powerful word in a prompt is <b>NOT</b>. Gemini has default behaviors baked in — verbose explanations,
+          technical jargon, bullet overload. Explicit prohibitions override those defaults surgically.
+          Think of it as setting the out-of-bounds markers: <b>no acronyms, no raw data, max 5 points</b> — now Gemini knows exactly where NOT to go.
+        </p>
+        <div style="margin-top:10px;background:#fff;border:1px solid #ffd6a5;padding:8px 12px;border-radius:4px;font-size:12px;color:#666;font-style:italic;">
+          💡 Try it: <i>"Write a warehouse status report. Do NOT use acronyms. Do NOT exceed 5 bullet points. Do NOT include raw numbers without context."</i>
+        </div>
+      </div>
+
+      <!-- SHOT 4 -->
+      <div style="padding:20px 24px;border-left:4px solid #9b59b6;margin:12px 24px 0;background:#faf4ff;border-radius:0 6px 6px 0;">
+        <div style="font-size:11px;color:#9b59b6;font-weight:bold;margin-bottom:6px;letter-spacing:1px;">🧠 SHOT 4 — META-PROMPTING</div>
+        <p style="color:#444;font-size:13px;line-height:1.7;margin:0;">
+          The highest level of prompting isn't about asking the perfect question — it's about
+          <b>asking Gemini to find the perfect question for you.</b> When you're stuck at the tee box of a complex problem,
+          Meta-Prompting is the caddie that hands you the right club. Ask it to interview you, build the prompt, then answer it.
+          That's a hole-in-one workflow.
+        </p>
+        <div style="margin-top:10px;background:#fff;border:1px solid #d8b4fe;padding:8px 12px;border-radius:4px;font-size:12px;color:#666;font-style:italic;">
+          💡 Try it: <i>"Before answering, ask me 5 questions to understand my cross-docking process. Then build the ideal prompt and answer it."</i>
+        </div>
+      </div>
+
+      <!-- QUICK STARTS -->
+      <div style="margin:20px 24px;background:#f0f8f0;border:1px solid #c3e6cb;border-radius:6px;padding:16px 20px;">
+        <div style="font-size:12px;color:#27ae60;font-weight:bold;margin-bottom:10px;">⛳ Quick-Start Prompts to Try Today</div>
+        <ul style="color:#555;font-size:12px;line-height:2;margin:0;padding-left:18px;font-style:italic;">
+          <li>Gemini: <i>"Act as a CFO. Review my Q3 report — no soft-pedalling, give me the hard truth."</i></li>
+          <li>Gemini: <i>"Context: Black Friday in 48h, 12 drivers out. How do I prioritise shipments?"</i></li>
+          <li>Gemini: <i>"Write a 5-point ops report. NO acronyms. NO jargon. Max 2 lines per point."</i></li>
+          <li>Gemini: <i>"Ask me 5 questions, then build the best prompt to solve my problem."</i></li>
+        </ul>
+      </div>
+
+      <!-- FOOTER -->
+      <div style="background:#0a1a2a;padding:20px 24px;text-align:center;margin-top:16px;">
+        <p style="color:#4a7a9a;font-size:11px;margin:0;">
+          ⛳ Zally Golf Club · AI Enablement Team · Zalando<br>
+          <span style="font-size:10px;color:#2a4a6a;">This message was auto-transmitted upon course completion. No golf balls were harmed.</span>
+        </p>
+      </div>
+
+    </div></body></html>
+    `;
+  }
+*/
+
+/* ═══════════════════ START ═══════════════════ */
+if (document.readyState !== 'loading') init();
+else window.addEventListener('load', init);
 </script>
+
+<!--
+════════════════════════════════════════════════════════════
+  CODE.GS — incolla questo in Google Apps Script
+════════════════════════════════════════════════════════════
+
+function doGet() {
+  return HtmlService
+    .createHtmlOutputFromFile('Index')
+    .setTitle('Zally Golf Club')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function sendCompletionEmail() {
+  var recipient = Session.getActiveUser().getEmail();
+  var subject = "⛳ Hole Complete: You're a Prompt Engineering Pro!";
+  var htmlBody = buildEmailBody();
+  MailApp.sendEmail({
+    to: recipient,
+    subject: subject,
+    htmlBody: htmlBody
+  });
+}
+
+function buildEmailBody() {
+  // [copia qui il template HTML dalla funzione buildEmailBody() commentata sopra]
+}
+
+════════════════════════════════════════════════════════════
+-->
 </body>
 </html>
