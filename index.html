@@ -42,7 +42,18 @@ html,body{width:100%;height:100%;background:#111;display:flex;align-items:center
 
 /* SPLIT LAYOUT */
 #split{position:absolute;top:44px;bottom:0;left:0;right:0;display:none;}
-#left{position:absolute;top:0;bottom:0;left:0;width:336px;background:linear-gradient(160deg,#05101a 0%,#020810 100%);border-right:2px solid #0a2a1a;display:flex;flex-direction:column;}
+
+/* Left panel slides out to the left when .hidden */
+#left{
+  position:absolute;top:0;bottom:0;left:0;width:336px;
+  background:linear-gradient(160deg,#05101a 0%,#020810 100%);
+  border-right:2px solid #0a2a1a;
+  display:flex;flex-direction:column;
+  transition:transform .5s cubic-bezier(.4,0,.2,1), opacity .4s ease;
+  transform:translateX(0);opacity:1;
+}
+#left.hidden{transform:translateX(-340px);opacity:0;pointer-events:none;}
+
 #zView{height:190px;position:relative;overflow:hidden;flex-shrink:0;background:linear-gradient(180deg,#3a80c0 0%,#68b8e8 55%,#28b855 55%,#1a7838 100%);}
 #zC{position:absolute;top:0;left:0;width:336px;height:190px;}
 #iBar{display:flex;justify-content:space-between;align-items:center;padding:4px 10px;background:#020c1a;border-top:1px solid #0a2540;border-bottom:1px solid #0a2540;flex-shrink:0;}
@@ -62,8 +73,12 @@ html,body{width:100%;height:100%;background:#111;display:flex;align-items:center
 #shootBtn{display:none;background:transparent;border:1.5px solid #27ae60;color:#27ae60;font-family:"Press Start 2P",monospace;font-size:6.5px;padding:7px;cursor:pointer;width:100%;}
 #shootBtn:hover{background:#27ae60;color:#000;}
 
-/* FIELD (right panel) */
-#right{position:absolute;top:0;bottom:0;left:336px;right:0;overflow:hidden;}
+/* Right panel expands to full width when left is hidden */
+#right{
+  position:absolute;top:0;bottom:0;left:336px;right:0;overflow:hidden;
+  transition:left .5s cubic-bezier(.4,0,.2,1);
+}
+#right.full{left:0;}
 #fC{position:absolute;top:0;left:0;}
 
 /* POWER UI */
@@ -224,6 +239,8 @@ SPR_SWING.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAGQCAYAAACAvzb
 
 /* ═══════ STATE ═══════ */
 const FW=562,FH=536,ZW=336,ZH=190;
+// fieldW tracks actual rendered width of field (changes when panel slides)
+let fieldW=FW;
 let shotIdx=0,totalScore=0,shotResults=[];
 let answered=false,correctChosen=false,phase="intro";
 let power=0,pwDir=1,pwRunning=false,pwRaf=null;
@@ -256,6 +273,10 @@ function startGame(){
 function loadShot(idx){
   shotIdx=idx;answered=false;correctChosen=false;
   ballLanded=false;trail=[];zallyState="idle";phase="challenge";
+  // Restore split layout
+  document.getElementById("left").classList.remove("hidden");
+  document.getElementById("right").classList.remove("full");
+  fieldW=FW;
   const s=SHOTS[idx];
   document.getElementById("hShot").textContent=idx+1;
   document.getElementById("hTech").textContent=s.tech;
@@ -301,8 +322,15 @@ function pick(chosen){
 
 /* ═══════ POWER ═══════ */
 function armShot(){
-  document.getElementById("powerUI").style.display="flex";
-  phase="power";power=0;pwDir=1;pwRunning=true;movePower();
+  // Slide left panel out → field expands full width
+  document.getElementById("left").classList.add("hidden");
+  document.getElementById("right").classList.add("full");
+  fieldW=900; // field now renders at full game width
+  // Show power UI after transition completes
+  setTimeout(()=>{
+    document.getElementById("powerUI").style.display="flex";
+    phase="power";power=0;pwDir=1;pwRunning=true;movePower();
+  },520);
 }
 function movePower(){
   if(!pwRunning)return;
@@ -322,11 +350,13 @@ function swing(){
 function launchBall(pw){
   ballLanded=false;trail=[];
   const s=SHOTS[shotIdx];
-  bx=FW*0.50;by=FH*0.82;
-  const wx=s.windDx*parseInt(s.wind)*0.006;
-  const spd=4.5+(pw/100)*9;
-  const ang=(62-pw*0.20)*Math.PI/180;
-  bvx=(Math.cos(ang)*spd*0.18)+wx;
+  const adv=shotIdx/3; // 0=tee, 1=near green
+  bx=FW*0.50;
+  by=FH*(0.82-adv*0.30); // ball starts higher each shot (closer to green)
+  const wx=s.windDx*parseInt(s.wind)*0.005;
+  const spd=3.5+(pw/100)*7;
+  const ang=(60-pw*0.18)*Math.PI/180;
+  bvx=(Math.cos(ang)*spd*0.15)+wx;
   bvy=-Math.sin(ang)*spd;
 }
 function updateBall(){
@@ -544,15 +574,28 @@ function drawField(s){
     c.fillStyle=ballG;c.beginPath();c.arc(teeX-2,teeY-18,6,0,Math.PI*2);c.fill();
   }
 
-  /* ZALLY_SWING sprite on field - large foreground character */
+  /* ZALLY_SWING sprite on field
+     Size: ~22% of field height (proportional to a real golfer vs distant green)
+     Position: advances toward green each shot (shotIdx 0=far, 3=close) */
   if(SPR_SWING.complete&&SPR_SWING.naturalWidth>0){
-    const sprH2=H*0.60,sprW2=sprH2;
-    const sprX2=teeX-sprW2*0.5,sprY2=H-sprH2*0.82;
-    c.fillStyle="rgba(0,0,0,0.18)";c.beginPath();c.ellipse(teeX,H-sprH2*0.14,sprW2*.34,10,0,0,Math.PI*2);c.fill();
-    c.imageSmoothingEnabled=false;c.drawImage(SPR_SWING,sprX2,sprY2,sprW2,sprH2);
+    // Zally advances from bottom toward green over 4 shots
+    // shot 0: teeX at centre, teeY at bottom
+    // shot 3: teeX still centre, teeY higher (closer to green)
+    const advanceFraction=shotIdx/3; // 0..1
+    const teeYAdv=H*0.86 - advanceFraction*(H*0.32); // moves up the field
+    const sprH2=H*0.22; // 22% — proportional to a real golfer on a golf course
+    const sprW2=sprH2*(SPR_SWING.naturalWidth/SPR_SWING.naturalHeight);
+    const sprX2=teeX-sprW2*0.5;
+    const sprY2=teeYAdv-sprH2*0.88;
+    // Ground shadow
+    c.fillStyle="rgba(0,0,0,0.18)";
+    c.beginPath();c.ellipse(teeX,teeYAdv,sprW2*.38,6,0,0,Math.PI*2);c.fill();
+    c.imageSmoothingEnabled=false;
+    c.drawImage(SPR_SWING,sprX2,sprY2,sprW2,sprH2);
+    // Swing arc during impact
     if(zallyState==="swing"){
-      c.strokeStyle="rgba(255,255,80,0.40)";c.lineWidth=3;c.setLineDash([5,6]);
-      c.beginPath();c.arc(teeX+sprW2*.12,sprY2+sprH2*.72,sprW2*.42,-1.6,-.05);c.stroke();
+      c.strokeStyle="rgba(255,255,80,0.40)";c.lineWidth=2;c.setLineDash([4,5]);
+      c.beginPath();c.arc(sprX2+sprW2*.72,sprY2+sprH2*.78,sprW2*.5,-1.7,-.1);c.stroke();
       c.setLineDash([]);
     }
   }
