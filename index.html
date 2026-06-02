@@ -449,6 +449,67 @@ function loop(){
 }
 
 /* ═══════ DRAW FIELD ═══════ */
+  /* ═══════ 1. FIELD PERSPECTIVE ENGINE & 2. SHOT-SPECIFIC CAMERA ═══════ */
+
+// Parametri definiti per ogni shot
+const CAMERA_STATES = [
+    { horizonY: 0.48, zoom: 1.0, greenScale: 0.5 },  // Shot 1: Vista Tee
+    { horizonY: 0.42, zoom: 1.2, greenScale: 0.7 },  // Shot 2: Vista Fairway
+    { horizonY: 0.35, zoom: 1.6, greenScale: 1.0 },  // Shot 3: Vista Approach
+    { horizonY: 0.25, zoom: 2.5, greenScale: 2.2 }   // Shot 4: Vista Green (Close-up)
+];
+
+// Stato attuale della camera
+const CAMERA = {
+    horizonY: 0,
+    vanishingX: 0, 
+    zoom: 1,
+    fog: 0,
+    greenScale: 1
+};
+
+// Aggiorna la camera in base allo shot corrente (shotIdx va da 0 a 3)
+function updateCamera(shotIdx, canvasHeight, canvasWidth) {
+    const state = CAMERA_STATES[shotIdx];
+    CAMERA.horizonY = canvasHeight * state.horizonY;
+    CAMERA.vanishingX = canvasWidth / 2; // Il punto di fuga è al centro dello schermo
+    CAMERA.zoom = state.zoom;
+    CAMERA.greenScale = state.greenScale;
+}
+
+// Nuova funzione di proiezione prospettica reale
+function project(x, z) {
+    const s = CAMERA.zoom / (z + 1);
+
+    return {
+        x: CAMERA.vanishingX + x * s,
+        y: CAMERA.horizonY + z * s,
+        scale: s // Utile per ridimensionare gli oggetti in base alla profondità
+    };
+}
+
+/* ═══════ 3. ATMOSPHERIC DEPTH SYSTEM ═══════ */
+
+const MAX_DEPTH = 100; // Valore massimo dell'asse Z per il calcolo atmosferico
+
+// Funzione per applicare l'effetto nebbia/distanza agli elementi
+function getAtmosphericStyle(z, baseH, baseS, baseL) {
+    let depthFactor = z / MAX_DEPTH;
+    
+    // Clamp del depthFactor tra 0 e 1 per sicurezza
+    depthFactor = Math.max(0, Math.min(1, depthFactor)); 
+
+    let alpha = 1 - (depthFactor * 0.5);
+    let saturation = 1 - (depthFactor * 0.4);
+    let brightness = 1 + (depthFactor * 0.2);
+
+    // Converte HSL modificato in una stringa per il canvas, applicando l'alpha
+    // baseH: 0-360, baseS e baseL: 0-100
+    let finalS = baseS * saturation;
+    let finalL = baseL * brightness;
+
+    return `hsla(${baseH}, ${finalS}%, ${finalL}%, ${alpha})`;
+}
 function drawField(s){
   const c=fCtx,W=FW,H=FH;
   c.clearRect(0,0,W,H);
