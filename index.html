@@ -241,17 +241,32 @@ SPR_SWING.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAGQCAYAAACAvzb
 const FW=562,FH=536,ZW=336,ZH=190;
 // fieldW tracks actual rendered width of field (changes when panel slides)
 let fieldW=FW;
+
+/* Per-shot camera / view progression.
+   hz=horizon line, ballXf/ballYf=ball position fractions,
+   tee=show tee box, zallyHf=Zally sprite height fraction in field. */
+const VIEWS=[
+  {hz:FH*0.42, ballXf:.50, ballYf:.87, tee:true,  zallyHf:.22},
+  {hz:FH*0.40, ballXf:.50, ballYf:.72, tee:false, zallyHf:.18},
+  {hz:FH*0.37, ballXf:.50, ballYf:.62, tee:false, zallyHf:.14},
+  {hz:FH*0.25, ballXf:.44, ballYf:.52, tee:false, zallyHf:.00},
+];
+const EXPAND_MS=500;                 // duration of canvas-expand animation (matches CSS panel slide)
+let expandStart=0;                   // perf.now() when panel slide begins; animates fieldW 562->900
+let currentHz=VIEWS[0].hz, targetHz=VIEWS[0].hz;  // smoothly interpolated horizon
+let camOffX=0, camOffXTarget=0;      // parallax camera offset driven by ball flight
 let shotIdx=0,totalScore=0,shotResults=[];
 let answered=false,correctChosen=false,phase="intro";
 let power=0,pwDir=1,pwRunning=false,pwRaf=null;
 let bx=0,by=0,bvx=0,bvy=0,ballLanded=false,trail=[];
 let zallyState="idle";
 let cloudT=0;
-let fCtx,zCtx;
+let fCtx,zCtx,fCanvas;
 
 /* ═══════ BOOT ═══════ */
 document.addEventListener("DOMContentLoaded",()=>{
-  fCtx=document.getElementById("fC").getContext("2d");
+  fCanvas=document.getElementById("fC");
+  fCtx=fCanvas.getContext("2d");
   zCtx=document.getElementById("zC").getContext("2d");
   drawField(SHOTS[0]);
   drawZally(SHOTS[0]);
@@ -277,6 +292,10 @@ function loadShot(idx){
   document.getElementById("left").classList.remove("hidden");
   document.getElementById("right").classList.remove("full");
   fieldW=FW;
+  expandStart=0;
+  targetHz=VIEWS[idx].hz;       // currentHz eases toward this every frame (zoom-in for shot 4)
+  camOffX=0;camOffXTarget=0;
+  if(fCanvas&&fCanvas.width!==FW)fCanvas.width=FW;
   const s=SHOTS[idx];
   document.getElementById("hShot").textContent=idx+1;
   document.getElementById("hTech").textContent=s.tech;
@@ -322,10 +341,10 @@ function pick(chosen){
 
 /* ═══════ POWER ═══════ */
 function armShot(){
-  // Slide left panel out → field expands full width
+  // Slide left panel out → field expands full width (fieldW animates 562→900 in loop)
   document.getElementById("left").classList.add("hidden");
   document.getElementById("right").classList.add("full");
-  fieldW=900; // field now renders at full game width
+  expandStart=performance.now();
   // Show power UI after transition completes
   setTimeout(()=>{
     document.getElementById("powerUI").style.display="flex";
@@ -349,10 +368,9 @@ function swing(){
 }
 function launchBall(pw){
   ballLanded=false;trail=[];
-  const s=SHOTS[shotIdx];
-  const adv=shotIdx/3; // 0=tee, 1=near green
-  bx=FW*0.50;
-  by=FH*(0.82-adv*0.30); // ball starts higher each shot (closer to green)
+  const s=SHOTS[shotIdx], v=VIEWS[shotIdx];
+  bx=fieldW*v.ballXf;          // launch from this shot's ball position
+  by=FH*v.ballYf;
   const wx=s.windDx*parseInt(s.wind)*0.005;
   const spd=3.5+(pw/100)*7;
   const ang=(60-pw*0.18)*Math.PI/180;
@@ -367,22 +385,23 @@ function updateBall(){
     by=gnd;ballLanded=true;phase="result";
     playLandSound();setTimeout(evalShot,700);
   }
-  if(bx>FW+80||bx<-60){phase="result";setTimeout(evalShot,200);}
+  if(bx>fieldW+80||bx<-60){phase="result";setTimeout(evalShot,200);}
 }
 function fGround(x){
-  const distFromCentre=Math.abs(x-FW*0.5);
-  const t=Math.max(0,Math.min(1,1-distFromCentre/(FW*0.5)));
+  if(shotIdx===3)return FH*0.66; // shot 4 close-up: flat foreground green surface
+  const distFromCentre=Math.abs(x-fieldW*0.5);
+  const t=Math.max(0,Math.min(1,1-distFromCentre/(fieldW*0.5)));
   return FH*0.88-t*(FH*0.42);
 }
 
 /* ═══════ EVAL ═══════ */
 function evalShot(){
-  const dist=Math.abs(bx-FW*0.50);
+  const dist=Math.abs(bx-fieldW*0.50);
   let label,delta;
   if(!correctChosen){label="BOGEY +1";delta=1;}
-  else if(dist<FW*0.04){label="HOLE IN ONE! ⭐⭐";delta=-2;}
-  else if(dist<FW*0.10){label="EAGLE -1 🦅";delta=-1;}
-  else if(dist<FW*0.20){label="BIRDIE ±0 🐦";delta=0;}
+  else if(dist<fieldW*0.04){label="HOLE IN ONE! ⭐⭐";delta=-2;}
+  else if(dist<fieldW*0.10){label="EAGLE -1 🦅";delta=-1;}
+  else if(dist<fieldW*0.20){label="BIRDIE ±0 🐦";delta=0;}
   else{label="PAR ±0";delta=0;}
   totalScore+=delta;
   shotResults.push({shot:shotIdx+1,tech:SHOTS[shotIdx].tech,label,delta});
@@ -437,88 +456,102 @@ function swingAnim(){
 /* ═══════ LOOP ═══════ */
 function loop(){
   cloudT+=0.28;
+
+  // ── 1. Canvas expand: fieldW animates 562→900 synced with the panel slide ──
+  if(expandStart){
+    const t=Math.min(1,(performance.now()-expandStart)/EXPAND_MS);
+    fieldW=FW+(900-FW)*ease42(t);   // cubic-bezier(.4,0,.2,1) — matches CSS curve
+    if(t>=1){fieldW=900;expandStart=0;}
+  }
+  // Resize the backing canvas to the current field width (VP stays at fieldW/2)
+  const cw=Math.round(fieldW);
+  if(fCanvas&&fCanvas.width!==cw)fCanvas.width=cw;
+
+  // ── Smooth camera: horizon eases toward target, parallax offset follows ball ──
+  currentHz+=(targetHz-currentHz)*0.04;
+  camOffXTarget=(phase==="flight"||phase==="result"||phase==="sinking")
+    ? -(bx-fieldW/2)*0.14 : 0;
+  camOffX+=(camOffXTarget-camOffX)*0.08;
+
   drawField(SHOTS[shotIdx]||SHOTS[0]);
   drawZally(SHOTS[shotIdx]||SHOTS[0]);
   if(phase==="flight")updateBall();
   if(phase==="sinking"){
-    const tx=FW*0.5,ty=fGround(FW*0.5);
+    const tx=fieldW*0.5,ty=fGround(fieldW*0.5);
     bx+=(tx-bx)*0.08;by+=(ty-by)*0.08;
     trail.push({x:bx,y:by});if(trail.length>10)trail.shift();
   }
   requestAnimationFrame(loop);
 }
 
+/* cubic-bezier(.4,0,.2,1) easing — same curve as the CSS panel transition */
+function ease42(t){
+  const cx=3*0.4, bX=3*(0.2-0.4)-cx, aX=1-cx-bX;
+  const cy=0,     bY=3*(1.0-0.0)-cy, aY=1-cy-bY;
+  let x=t;
+  for(let i=0;i<5;i++){
+    const f=((aX*x+bX)*x+cx)*x-t, d=(3*aX*x+2*bX)*x+cx;
+    if(Math.abs(d)<1e-6)break;
+    x-=f/d;
+  }
+  return ((aY*x+bY)*x+cy)*x;
+}
+
 /* ═══════ DRAW FIELD ═══════ */
-  /* ═══════ 1. FIELD PERSPECTIVE ENGINE & 2. SHOT-SPECIFIC CAMERA ═══════ */
-
-// Parametri definiti per ogni shot
-const CAMERA_STATES = [
-    { horizonY: 0.48, zoom: 1.0, greenScale: 0.5 },  // Shot 1: Vista Tee
-    { horizonY: 0.42, zoom: 1.2, greenScale: 0.7 },  // Shot 2: Vista Fairway
-    { horizonY: 0.35, zoom: 1.6, greenScale: 1.0 },  // Shot 3: Vista Approach
-    { horizonY: 0.25, zoom: 2.5, greenScale: 2.2 }   // Shot 4: Vista Green (Close-up)
-];
-
-// Stato attuale della camera
-const CAMERA = {
-    horizonY: 0,
-    vanishingX: 0, 
-    zoom: 1,
-    fog: 0,
-    greenScale: 1
-};
-
-// Aggiorna la camera in base allo shot corrente (shotIdx va da 0 a 3)
-function updateCamera(shotIdx, canvasHeight, canvasWidth) {
-    const state = CAMERA_STATES[shotIdx];
-    CAMERA.horizonY = canvasHeight * state.horizonY;
-    CAMERA.vanishingX = canvasWidth / 2; // Il punto di fuga è al centro dello schermo
-    CAMERA.zoom = state.zoom;
-    CAMERA.greenScale = state.greenScale;
-}
-
-// Nuova funzione di proiezione prospettica reale
-function project(x, z) {
-    const s = CAMERA.zoom / (z + 1);
-
-    return {
-        x: CAMERA.vanishingX + x * s,
-        y: CAMERA.horizonY + z * s,
-        scale: s // Utile per ridimensionare gli oggetti in base alla profondità
-    };
-}
-
-/* ═══════ 3. ATMOSPHERIC DEPTH SYSTEM ═══════ */
-
-const MAX_DEPTH = 100; // Valore massimo dell'asse Z per il calcolo atmosferico
-
-// Funzione per applicare l'effetto nebbia/distanza agli elementi
-function getAtmosphericStyle(z, baseH, baseS, baseL) {
-    let depthFactor = z / MAX_DEPTH;
-    
-    // Clamp del depthFactor tra 0 e 1 per sicurezza
-    depthFactor = Math.max(0, Math.min(1, depthFactor)); 
-
-    let alpha = 1 - (depthFactor * 0.5);
-    let saturation = 1 - (depthFactor * 0.4);
-    let brightness = 1 + (depthFactor * 0.2);
-
-    // Converte HSL modificato in una stringa per il canvas, applicando l'alpha
-    // baseH: 0-360, baseS e baseL: 0-100
-    let finalS = baseS * saturation;
-    let finalL = baseL * brightness;
-
-    return `hsla(${baseH}, ${finalS}%, ${finalL}%, ${alpha})`;
-}
+// Dispatch: shot 4 uses a dedicated close-up green view, others share the normal engine
 function drawField(s){
-  const c=fCtx,W=FW,H=FH;
-  c.clearRect(0,0,W,H);
-  const hz=H*0.42, VP=W/2; // horizon higher = more sky = more open feeling
+  if(shotIdx===3) drawFieldShot4(s);
+  else drawFieldNormal(s);
+}
 
-  // ══════════════════════════════════════════
-  // SKY — deep azure top, warm haze at horizon
-  // Like photo 3: golden hour light
-  // ══════════════════════════════════════════
+// Depth → parallax factor: distant trees barely move, foreground trees move most
+function treeDF(yo){ return yo<12?0.12 : yo<45?0.32 : 0.58; }
+
+// Shared ball renderer (white dimpled gradient + specular highlight)
+function drawBall(c,x,y,r){
+  const g=c.createRadialGradient(x-r*.28,y-r*.32,r*.08,x,y,r);
+  g.addColorStop(0,"#fff"); g.addColorStop(0.5,"#eee"); g.addColorStop(1,"#bbb");
+  c.fillStyle=g; c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill();
+  c.fillStyle="rgba(255,255,255,.8)";
+  c.beginPath(); c.arc(x-r*.3,y-r*.32,r*.28,0,Math.PI*2); c.fill();
+}
+
+// Pulsing yellow "ready" arrow above a pre-launch ball (sin wave)
+function drawPulseArrow(c,x,y){
+  const p=(Math.sin(Date.now()*0.005)+1)/2;
+  const ay=y-24-(p*8);
+  c.save();
+  c.globalAlpha=0.55+p*0.45;
+  c.strokeStyle="#f5d020"; c.fillStyle="#f5d020"; c.lineWidth=3;
+  c.beginPath(); c.moveTo(x,ay+18); c.lineTo(x,ay); c.stroke();
+  c.beginPath(); c.moveTo(x-7,ay+8); c.lineTo(x,ay-2); c.lineTo(x+7,ay+8); c.closePath(); c.fill();
+  c.restore();
+}
+
+// Ball trail + ball in flight (shared by both views)
+function drawTrailAndBall(c,hz,H){
+  trail.forEach((p,i)=>{
+    const a=(i/trail.length)*0.65, r=1.5+(i/trail.length)*3;
+    c.fillStyle="rgba(255,244,80,"+a+")";
+    c.beginPath(); c.arc(p.x,p.y,r,0,Math.PI*2); c.fill();
+  });
+  if(phase==="flight"||phase==="result"||phase==="sinking"){
+    const depthT=Math.max(0,(by-hz))/(H-hz);
+    const r=Math.max(2,7*(1-depthT*.8));
+    c.fillStyle="rgba(0,0,0,0.18)";
+    c.beginPath(); c.ellipse(bx,fGround(bx)+2,r*1.6,r*.44,0,0,Math.PI*2); c.fill();
+    drawBall(c,bx,by,r);
+  }
+}
+
+/* ═══════ NORMAL FIELD (shots 1-3) ═══════ */
+function drawFieldNormal(s){
+  const c=fCtx,W=fieldW,H=FH;
+  c.clearRect(0,0,W,H);
+  const hz=currentHz, VP=W/2;     // VP always centred on the (animating) field width
+  const v=VIEWS[shotIdx];
+
+  // ── SKY — deep azure top, warm haze at horizon (golden hour) ──
   const skyG=c.createLinearGradient(0,0,0,hz);
   skyG.addColorStop(0,"#2a6ab8");
   skyG.addColorStop(0.45,"#4a9ad8");
@@ -526,37 +559,29 @@ function drawField(s){
   skyG.addColorStop(1,"#c8e8f8");
   c.fillStyle=skyG; c.fillRect(0,0,W,hz);
 
-  // Warm horizon glow (golden hour, sun bottom-right)
+  // Warm horizon glow (sun bottom-right)
   const horizGlow=c.createLinearGradient(W*0.55,hz-60,W,hz+20);
   horizGlow.addColorStop(0,"rgba(255,200,80,0)");
   horizGlow.addColorStop(0.5,"rgba(255,210,100,0.35)");
   horizGlow.addColorStop(1,"rgba(255,230,120,0.55)");
   c.fillStyle=horizGlow; c.fillRect(0,hz-60,W,80);
 
-  // ══════════════════════════════════════════
-  // SUN — bottom right, large warm disc + rays like photo 3
-  // ══════════════════════════════════════════
+  // ── SUN — bottom right, large warm disc + rays ──
   const sx=W*0.91, sy=hz+H*0.04;
-  // outer halo
   const sunHalo=c.createRadialGradient(sx,sy,0,sx,sy,W*0.28);
   sunHalo.addColorStop(0,"rgba(255,240,120,0.45)");
   sunHalo.addColorStop(0.35,"rgba(255,200,60,0.18)");
   sunHalo.addColorStop(1,"rgba(255,160,0,0)");
   c.fillStyle=sunHalo; c.beginPath(); c.arc(sx,sy,W*0.28,0,Math.PI*2); c.fill();
-  // sun disc
   const sunDisc=c.createRadialGradient(sx,sy,0,sx,sy,38);
   sunDisc.addColorStop(0,"#fffde0");
   sunDisc.addColorStop(0.4,"#ffe060");
   sunDisc.addColorStop(1,"rgba(255,160,0,0.6)");
   c.fillStyle=sunDisc; c.beginPath(); c.arc(sx,sy,38,0,Math.PI*2); c.fill();
-  // sunrays across the field (like photo 3)
   c.save();
   const rayAngles=[-0.55,-0.42,-0.30,-0.18,-0.06,0.08,0.22];
   rayAngles.forEach(ang=>{
-    const rayG=c.createLinearGradient(sx,sy,sx-Math.cos(ang)*W*1.2,sy+Math.sin(ang+Math.PI)*H*1.1);
-    rayG.addColorStop(0,"rgba(255,230,100,0.22)");
-    rayG.addColorStop(1,"rgba(255,200,60,0)");
-    c.fillStyle=rayG;
+    c.fillStyle="rgba(255,225,100,0.10)";
     c.beginPath();
     c.moveTo(sx,sy);
     const a1=ang-0.04, a2=ang+0.04;
@@ -566,10 +591,7 @@ function drawField(s){
   });
   c.restore();
 
-  // ══════════════════════════════════════════
-  // CLOUDS — soft realistic wisps, photo 2 style
-  // Not pixel art — smooth gradients
-  // ══════════════════════════════════════════
+  // ── CLOUDS — soft realistic wisps ──
   const cloudDefs=[
     {x:0.04,y:0.08,w:140,h:38,op:0.88},
     {x:0.18,y:0.04,w:90,h:22,op:0.72},
@@ -584,17 +606,12 @@ function drawField(s){
     drawSoftCloud(c,cx,cd.y*H,cd.w,cd.h,cd.op);
   });
 
-  // ══════════════════════════════════════════
-  // DISTANT TREELINE at horizon — no mountains
-  // Low silhouette of mixed trees, hazy
-  // ══════════════════════════════════════════
-  // Far tree silhouette (very hazy, atmospheric)
+  // ── DISTANT TREELINE at horizon ──
   const treeHaze=c.createLinearGradient(0,hz-28,0,hz+2);
   treeHaze.addColorStop(0,"rgba(60,100,50,0)");
   treeHaze.addColorStop(0.4,"rgba(48,82,40,0.65)");
   treeHaze.addColorStop(1,"rgba(40,70,32,0.85)");
   c.fillStyle=treeHaze;
-  // organic bumpy treeline
   c.beginPath(); c.moveTo(0,hz);
   let tx=0;
   while(tx<W){
@@ -605,10 +622,7 @@ function drawField(s){
   }
   c.lineTo(W,hz); c.lineTo(0,hz); c.fill();
 
-  // ══════════════════════════════════════════
-  // GROUND BASE — warm golden-green gradient
-  // Photo 3: bright yellow-green in foreground, richer green mid
-  // ══════════════════════════════════════════
+  // ── GROUND BASE — warm golden-green ──
   const groundG=c.createLinearGradient(0,hz,0,H);
   groundG.addColorStop(0,"#3a8c30");
   groundG.addColorStop(0.25,"#4aaa3a");
@@ -616,19 +630,13 @@ function drawField(s){
   groundG.addColorStop(1,"#78d858");
   c.fillStyle=groundG; c.fillRect(0,hz,W,H-hz);
 
-  // ══════════════════════════════════════════
-  // FAIRWAY — wide, open, alternating stripe shades
-  // Fills most of the width (generous, like real courses)
-  // ══════════════════════════════════════════
-  const FW_TOP=W*0.30;  // wide at horizon
-  const FW_BOT=W*0.98;  // almost full width at bottom
-  const N=24;
+  // ── FAIRWAY — wide, alternating stripes ──
+  const FW_TOP=W*0.30, FW_BOT=W*0.98, N=24;
   for(let i=0;i<N;i++){
     const t0=i/N, t1=(i+1)/N;
     const y0=hz+(H-hz)*t0, y1=hz+(H-hz)*t1;
     const hw0=(FW_TOP/2)+(FW_BOT/2-FW_TOP/2)*t0;
     const hw1=(FW_TOP/2)+(FW_BOT/2-FW_TOP/2)*t1;
-    // Warm golden tint increases toward bottom (sun from right)
     const warm=t0*0.15;
     c.fillStyle=i%2===0
       ? `rgba(${Math.round(60+warm*60)},${Math.round(168+warm*20)},${Math.round(60-warm*30)},1)`
@@ -639,15 +647,11 @@ function drawField(s){
     c.fill();
   }
 
-  // Shadow stripes (like photo 3 — long diagonal shadows across fairway)
+  // Long diagonal shadow stripes across fairway
   c.save();
   const shadowAngles=[0.3,0.18,0.08,-0.05,-0.15];
   shadowAngles.forEach((ang,i)=>{
-    const shG=c.createLinearGradient(VP+i*80,hz,VP+i*80+40,H);
-    shG.addColorStop(0,"rgba(0,0,0,0)");
-    shG.addColorStop(0.4,"rgba(0,0,0,0.07)");
-    shG.addColorStop(1,"rgba(0,0,0,0)");
-    c.fillStyle=shG;
+    c.fillStyle="rgba(0,0,0,0.05)";
     c.beginPath();
     c.moveTo(VP+i*90-20,hz);
     c.lineTo(VP+i*90+20,hz);
@@ -657,27 +661,28 @@ function drawField(s){
   });
   c.restore();
 
-  // ══════════════════════════════════════════
-  // ROUGH + GENTLE HILLS on sides
-  // Organic rolling terrain, not flat strips
-  // ══════════════════════════════════════════
-  // Left rough with gentle slope
+  // ── ROUGH on sides ──
   c.fillStyle="#3a8830";
   c.beginPath();
   c.moveTo(0,hz); c.lineTo(VP-FW_TOP/2,hz);
   c.bezierCurveTo(VP-FW_TOP/2-20,hz+40, VP-FW_BOT/2+60,H*0.6, 0,H);
   c.lineTo(0,hz); c.fill();
-
-  // Right rough
   c.fillStyle="#3a8830";
   c.beginPath();
   c.moveTo(W,hz); c.lineTo(VP+FW_TOP/2,hz);
   c.bezierCurveTo(VP+FW_TOP/2+20,hz+40, VP+FW_BOT/2-60,H*0.6, W,H);
   c.lineTo(W,hz); c.fill();
 
-  // ══════════════════════════════════════════
-  // TREES LEFT — realistic, tall, varied
-  // ══════════════════════════════════════════
+  // ── 7. GOLDEN HOUR HAZE — strong warm band from horizon downward ──
+  const hazeH=(H-hz)*0.55;
+  const hazeG=c.createLinearGradient(0,hz-20,0,hz+hazeH);
+  hazeG.addColorStop(0,"rgba(255,120,15,0.38)");    // orange core at horizon
+  hazeG.addColorStop(0.16,"rgba(255,185,35,0.72)"); // hot golden peak
+  hazeG.addColorStop(0.5,"rgba(255,200,80,0.30)");
+  hazeG.addColorStop(1,"rgba(255,210,120,0)");
+  c.fillStyle=hazeG; c.fillRect(0,hz-20,W,hazeH+20);
+
+  // ── 4. TREES with depth parallax (foreground shifts most during flight) ──
   const treeDataL=[
     {x:2,  yo:0,  h:55,w:22,col:"#1a4a18"},
     {x:28, yo:2,  h:68,w:26,col:"#1e5620"},
@@ -694,11 +699,8 @@ function drawField(s){
     {x:20, yo:105,h:140,w:56,col:"#1a4a18"},
     {x:72, yo:110,h:155,w:60,col:"#206028"},
   ];
-  treeDataL.forEach(t=>drawRealisticTree(c,t.x,hz+t.yo,t.h,t.w,t.col));
+  treeDataL.forEach(t=>drawRealisticTree(c,t.x+camOffX*treeDF(t.yo),hz+t.yo,t.h,t.w,t.col));
 
-  // ══════════════════════════════════════════
-  // TREES RIGHT — mirrored, slightly different
-  // ══════════════════════════════════════════
   const treeDataR=[
     {x:W-6,  yo:0,  h:50,w:20,col:"#206028"},
     {x:W-32, yo:3,  h:65,w:25,col:"#1a4a18"},
@@ -715,23 +717,16 @@ function drawField(s){
     {x:W-25, yo:102,h:138,w:55,col:"#164014"},
     {x:W-80, yo:108,h:150,w:58,col:"#1e5620"},
   ];
-  treeDataR.forEach(t=>drawRealisticTree(c,t.x,hz+t.yo,t.h,t.w,t.col));
+  treeDataR.forEach(t=>drawRealisticTree(c,t.x+camOffX*treeDF(t.yo),hz+t.yo,t.h,t.w,t.col));
 
-  // ══════════════════════════════════════════
-  // LAKE — right of fairway, mid-distance
-  // Reflects sky, calm, integrated (photo 2)
-  // ══════════════════════════════════════════
-  const lkDepth=0.44; // depth in ground space
+  // ── LAKE — right of fairway, mid-distance ──
+  const lkDepth=0.44;
   const lkY=hz+(H-hz)*lkDepth;
   const lkHW=(FW_TOP/2)+(FW_BOT/2-FW_TOP/2)*lkDepth;
-  const lkX=VP+lkHW*0.55; // right of fairway
+  const lkX=VP+lkHW*0.55;
   const lkW=70, lkH=20;
-
-  // Shore grass
   c.fillStyle="#2e7828";
   c.beginPath(); c.ellipse(lkX,lkY,lkW+14,lkH+8,-0.08,0,Math.PI*2); c.fill();
-
-  // Water — reflects sky colors
   const lkG=c.createRadialGradient(lkX-lkW*.25,lkY-lkH*.3,2,lkX,lkY,lkW);
   lkG.addColorStop(0,"#a0d8f8");
   lkG.addColorStop(0.3,"#5ab0e0");
@@ -739,8 +734,6 @@ function drawField(s){
   lkG.addColorStop(1,"#1060a0");
   c.fillStyle=lkG;
   c.beginPath(); c.ellipse(lkX,lkY,lkW,lkH,-0.08,0,Math.PI*2); c.fill();
-
-  // Sky reflection highlight
   c.save();
   c.beginPath(); c.ellipse(lkX,lkY,lkW,lkH,-0.08,0,Math.PI*2); c.clip();
   const reflG=c.createLinearGradient(lkX-lkW,lkY-lkH,lkX+lkW,lkY+lkH);
@@ -749,57 +742,39 @@ function drawField(s){
   reflG.addColorStop(0.6,"rgba(200,230,255,0.20)");
   reflG.addColorStop(1,"rgba(255,255,255,0)");
   c.fillStyle=reflG; c.fillRect(lkX-lkW,lkY-lkH,lkW*2,lkH*2);
-  // gentle ripples
   c.strokeStyle="rgba(255,255,255,0.22)"; c.lineWidth=1; c.setLineDash([5,7]);
   [[-18,-3],[8,2],[32,-2],[-5,6]].forEach(([ox,oy])=>{
     c.beginPath(); c.arc(lkX+ox,lkY+oy,10,0.2,Math.PI-0.2); c.stroke();
   });
   c.setLineDash([]); c.restore();
-
-  // Shore edge
   c.strokeStyle="rgba(40,100,60,0.5)"; c.lineWidth=1.5;
   c.beginPath(); c.ellipse(lkX,lkY,lkW,lkH,-0.08,0,Math.PI*2); c.stroke();
 
-  // ══════════════════════════════════════════
-  // BUNKERS — flanking green, realistic sandy
-  // ══════════════════════════════════════════
+  // ── BUNKERS flanking green ──
   const gDepth=0.18;
   const gY=hz+(H-hz)*gDepth;
   const gHW=(FW_TOP/2)+(FW_BOT/2-FW_TOP/2)*gDepth;
-
-  function drawBunker(bx,by,rw,rh,rot){
-    // Grass mound behind
+  function drawBunker(bxx,byy,rw,rh,rot){
     c.fillStyle="#2e8830";
-    c.beginPath(); c.ellipse(bx,by-rh*.4,rw*1.2,rh*1.3,rot,0,Math.PI*2); c.fill();
-    // Sand — outer
+    c.beginPath(); c.ellipse(bxx,byy-rh*.4,rw*1.2,rh*1.3,rot,0,Math.PI*2); c.fill();
     c.fillStyle="#d4b870";
-    c.beginPath(); c.ellipse(bx,by,rw,rh,rot,0,Math.PI*2); c.fill();
-    // Sand — lighter centre
+    c.beginPath(); c.ellipse(bxx,byy,rw,rh,rot,0,Math.PI*2); c.fill();
     c.fillStyle="#ecd898";
-    c.beginPath(); c.ellipse(bx,by-rh*.05,rw*.6,rh*.6,rot,0,Math.PI*2); c.fill();
-    // Rim shadow
-    const rimG=c.createLinearGradient(bx,by-rh,bx,by+rh);
+    c.beginPath(); c.ellipse(bxx,byy-rh*.05,rw*.6,rh*.6,rot,0,Math.PI*2); c.fill();
+    const rimG=c.createLinearGradient(bxx,byy-rh,bxx,byy+rh);
     rimG.addColorStop(0,"rgba(100,70,10,0.35)");
     rimG.addColorStop(0.5,"rgba(100,70,10,0)");
-    c.save(); c.beginPath(); c.ellipse(bx,by,rw,rh,rot,0,Math.PI*2); c.clip();
-    c.fillStyle=rimG; c.fillRect(bx-rw,by-rh,rw*2,rh*2); c.restore();
+    c.save(); c.beginPath(); c.ellipse(bxx,byy,rw,rh,rot,0,Math.PI*2); c.clip();
+    c.fillStyle=rimG; c.fillRect(bxx-rw,byy-rh,rw*2,rh*2); c.restore();
   }
   drawBunker(VP-gHW*.6, gY+6, 20, 7, 0.1);
   drawBunker(VP+gHW*.6, gY+6, 18, 6, -0.1);
   drawBunker(VP-8, hz+(H-hz)*.42, 14,5, 0.05);
 
-  // ══════════════════════════════════════════
-  // GREEN — large, prominent, beautiful
-  // Center of composition, like photo 3
-  // ══════════════════════════════════════════
-  const gx=VP, gy=gY;
-  const gRX=52, gRY=15; // bigger green, more prominent
-
-  // Drop shadow
+  // ── GREEN ──
+  const gx=VP, gy=gY, gRX=52, gRY=15;
   c.fillStyle="rgba(0,0,0,0.15)";
   c.beginPath(); c.ellipse(gx+3,gy+5,gRX+6,gRY+3,0,0,Math.PI*2); c.fill();
-
-  // Green — vibrant, lit by sun
   const greenG=c.createRadialGradient(gx-gRX*.2,gy-gRY*.3,2,gx,gy,gRX);
   greenG.addColorStop(0,"#72f890");
   greenG.addColorStop(0.3,"#4ae068");
@@ -807,8 +782,6 @@ function drawField(s){
   greenG.addColorStop(1,"#18983a");
   c.fillStyle=greenG;
   c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.fill();
-
-  // Mowing stripes on green (like real courses)
   c.save();
   c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.clip();
   for(let si=-gRX;si<gRX;si+=8){
@@ -816,117 +789,234 @@ function drawField(s){
     c.fillRect(gx+si,gy-gRY,8,gRY*2);
   }
   c.restore();
-
-  // Green border
   c.strokeStyle="#18803a"; c.lineWidth=1.5;
   c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.stroke();
-
-  // Highlight
   c.fillStyle="rgba(255,255,255,0.18)";
   c.beginPath(); c.ellipse(gx-gRX*.25,gy-gRY*.3,gRX*.38,gRY*.45,-0.3,0,Math.PI*2); c.fill();
-
-  // Hole
   c.fillStyle="#111";
   c.beginPath(); c.ellipse(gx,gy+2,5,2.5,0,0,Math.PI*2); c.fill();
 
-  // ══════════════════════════════════════════
-  // FLAG PIN — elegant, visible, with checkered flag
-  // ══════════════════════════════════════════
+  // ── FLAG PIN ──
   const pinH=52;
-  // pin shadow
   c.strokeStyle="rgba(0,0,0,0.15)"; c.lineWidth=1.5;
   c.beginPath(); c.moveTo(gx+3,gy+2); c.lineTo(gx+6,gy-pinH); c.stroke();
-  // pin
   c.strokeStyle="#e8e8e8"; c.lineWidth=2;
   c.beginPath(); c.moveTo(gx,gy+2); c.lineTo(gx,gy-pinH); c.stroke();
-  // flag — checkered black/white like photo 3
-  const flagW=22, flagH=14;
-  const sqS=flagW/2;
+  const flagW=22, flagH=14, sqS=flagW/2;
   [[0,0,"#fff"],[sqS,0,"#222"],[0,flagH/2,"#222"],[sqS,flagH/2,"#fff"]].forEach(([fx,fy,fc])=>{
-    c.fillStyle=fc;
-    c.fillRect(gx+fx,gy-pinH+fy,sqS,flagH/2);
+    c.fillStyle=fc; c.fillRect(gx+fx,gy-pinH+fy,sqS,flagH/2);
   });
-  // flag icon (technique color)
   c.fillStyle="rgba(0,0,0,0.4)";
   c.fillRect(gx,gy-pinH,flagW,flagH);
   c.fillStyle=s.color;
   c.font="bold 7px sans-serif"; c.textAlign="center";
   c.fillText(s.icon,gx+flagW/2,gy-pinH+10); c.textAlign="left";
 
-  // ══════════════════════════════════════════
-  // TEE BOX — bottom centre
-  // ══════════════════════════════════════════
-  const teeX=VP, teeY=H*0.87;
-  const tRX=70, tRY=18;
-  const teeG2=c.createRadialGradient(teeX,teeY-5,4,teeX,teeY,tRX);
-  teeG2.addColorStop(0,"#5af090");
-  teeG2.addColorStop(0.5,"#38d870");
-  teeG2.addColorStop(1,"#22b855");
-  c.fillStyle=teeG2;
-  c.beginPath(); c.ellipse(teeX,teeY,tRX,tRY,0,0,Math.PI*2); c.fill();
-  c.strokeStyle="rgba(255,255,255,0.45)"; c.lineWidth=1.5;
-  c.beginPath(); c.ellipse(teeX,teeY,tRX,tRY,0,0,Math.PI*2); c.stroke();
-  // markers
-  c.fillStyle="#fff";
-  c.fillRect(teeX-tRX+5,teeY-4,5,9); c.fillRect(teeX+tRX-10,teeY-4,5,9);
-
-  // tee stick + ball pre-launch
-  if(phase==="challenge"||phase==="power"){
-    c.strokeStyle="#f5c820"; c.lineWidth=2.5;
-    c.beginPath(); c.moveTo(teeX-2,teeY-7); c.lineTo(teeX-2,teeY-20); c.stroke();
-    const bG=c.createRadialGradient(teeX-4,teeY-22,1,teeX-2,teeY-20,6);
-    bG.addColorStop(0,"#fff"); bG.addColorStop(1,"#ddd");
-    c.fillStyle=bG; c.beginPath(); c.arc(teeX-2,teeY-20,6,0,Math.PI*2); c.fill();
+  // ── 8. TEE BOX — only on shot 1 ──
+  if(v.tee){
+    const teeX=VP, teeY=H*0.87, tRX=70, tRY=18;
+    const teeG2=c.createRadialGradient(teeX,teeY-5,4,teeX,teeY,tRX);
+    teeG2.addColorStop(0,"#5af090");
+    teeG2.addColorStop(0.5,"#38d870");
+    teeG2.addColorStop(1,"#22b855");
+    c.fillStyle=teeG2;
+    c.beginPath(); c.ellipse(teeX,teeY,tRX,tRY,0,0,Math.PI*2); c.fill();
+    c.strokeStyle="rgba(255,255,255,0.45)"; c.lineWidth=1.5;
+    c.beginPath(); c.ellipse(teeX,teeY,tRX,tRY,0,0,Math.PI*2); c.stroke();
+    c.fillStyle="#fff";
+    c.fillRect(teeX-tRX+5,teeY-4,5,9); c.fillRect(teeX+tRX-10,teeY-4,5,9);
+    // tee stick + pre-launch ball
+    if(phase==="challenge"||phase==="power"){
+      c.strokeStyle="#f5c820"; c.lineWidth=2.5;
+      c.beginPath(); c.moveTo(teeX-2,teeY-7); c.lineTo(teeX-2,teeY-20); c.stroke();
+      drawBall(c,teeX-2,teeY-20,6);
+    }
   }
 
-  // ══════════════════════════════════════════
-  // ZALLY SWING SPRITE — proportional, advancing
-  // ══════════════════════════════════════════
-  if(SPR_SWING.complete&&SPR_SWING.naturalWidth>0){
-    const adv=shotIdx/3;
-    const zY=H*0.86-adv*H*0.32;
-    const zH=H*0.22;
+  // ── 9. PRE-LAUNCH ball + pulsing arrow on fairway (shots 2-3) ──
+  if(!v.tee && (phase==="challenge"||phase==="power")){
+    const px=W*v.ballXf, py=H*v.ballYf;
+    drawPulseArrow(c,px,py);
+    drawBall(c,px,py,7);
+  }
+
+  // ── 10. ZALLY swing sprite in field, sized per shot ──
+  if(v.zallyHf>0 && SPR_SWING.complete && SPR_SWING.naturalWidth>0){
+    const zH=H*v.zallyHf;
     const zW=zH*(SPR_SWING.naturalWidth/SPR_SWING.naturalHeight);
-    const zX=teeX-zW*0.5;
-    // shadow
+    const zFeetY=H*v.ballYf+6;
+    const zCx=W*v.ballXf - zW*0.12;
+    const zX=zCx-zW*0.5;
     c.fillStyle="rgba(0,0,0,0.16)";
-    c.beginPath(); c.ellipse(teeX,zY,zW*.38,6,0,0,Math.PI*2); c.fill();
+    c.beginPath(); c.ellipse(zCx,zFeetY,zW*.34,6,0,0,Math.PI*2); c.fill();
     c.imageSmoothingEnabled=true; c.imageSmoothingQuality="high";
-    c.drawImage(SPR_SWING,zX,zY-zH*0.88,zW,zH);
+    c.drawImage(SPR_SWING,zX,zFeetY-zH,zW,zH);
     if(zallyState==="swing"){
       c.strokeStyle="rgba(255,255,80,0.38)"; c.lineWidth=2; c.setLineDash([4,5]);
-      c.beginPath(); c.arc(zX+zW*.72,zY-zH*.1,zW*.5,-1.7,-0.1); c.stroke();
+      c.beginPath(); c.arc(zX+zW*.72,zFeetY-zH*.6,zW*.5,-1.7,-0.1); c.stroke();
       c.setLineDash([]);
     }
   }
 
-  // ══════════════════════════════════════════
-  // BALL TRAIL + BALL IN FLIGHT
-  // ══════════════════════════════════════════
-  trail.forEach((p,i)=>{
-    const a=(i/trail.length)*0.65, r=1.5+(i/trail.length)*3;
-    c.fillStyle="rgba(255,244,80,"+a+")";
-    c.beginPath(); c.arc(p.x,p.y,r,0,Math.PI*2); c.fill();
-  });
+  // ── BALL TRAIL + BALL IN FLIGHT ──
+  drawTrailAndBall(c,hz,H);
 
-  if(phase==="flight"||phase==="result"||phase==="sinking"){
-    const depthT=Math.max(0,(by-hz))/(H-hz);
-    const r=Math.max(2,7*(1-depthT*.8));
-    c.fillStyle="rgba(0,0,0,0.18)";
-    c.beginPath(); c.ellipse(bx,fGround(bx)+2,r*1.6,r*.44,0,0,Math.PI*2); c.fill();
-    const ballG=c.createRadialGradient(bx-r*.28,by-r*.32,r*.08,bx,by,r);
-    ballG.addColorStop(0,"#fff"); ballG.addColorStop(0.5,"#eee"); ballG.addColorStop(1,"#bbb");
-    c.fillStyle=ballG; c.beginPath(); c.arc(bx,by,r,0,Math.PI*2); c.fill();
-    c.fillStyle="rgba(255,255,255,.8)";
-    c.beginPath(); c.arc(bx-r*.3,by-r*.32,r*.28,0,Math.PI*2); c.fill();
-  }
-
-  // ══════════════════════════════════════════
-  // VIGNETTE — soft, natural, not heavy
-  // ══════════════════════════════════════════
+  // ── VIGNETTE ──
   const vigG=c.createRadialGradient(W*0.5,H*0.5,W*0.25,W*0.5,H*0.5,W*0.82);
   vigG.addColorStop(0,"rgba(0,0,0,0)");
   vigG.addColorStop(1,"rgba(0,0,0,0.32)");
+  c.fillStyle=vigG; c.fillRect(0,0,W,H);
+}
+
+/* ═══════ 2. SHOT 4 CLOSE-UP GREEN VIEW ═══════ */
+function drawFieldShot4(s){
+  const c=fCtx,W=fieldW,H=FH;
+  c.clearRect(0,0,W,H);
+  const hz=currentHz, VP=W/2;   // very low horizon (~H*0.25): we are right at the green
+
+  // ── SKY band (small) ──
+  const skyG=c.createLinearGradient(0,0,0,hz);
+  skyG.addColorStop(0,"#2a6ab8");
+  skyG.addColorStop(0.5,"#5aa0dc");
+  skyG.addColorStop(1,"#b8e0f6");
+  c.fillStyle=skyG; c.fillRect(0,0,W,hz);
+
+  // ── SUN low & big on the horizon ──
+  const sx=W*0.72, sy=hz-8;
+  const halo=c.createRadialGradient(sx,sy,0,sx,sy,W*0.34);
+  halo.addColorStop(0,"rgba(255,235,130,0.6)");
+  halo.addColorStop(0.4,"rgba(255,190,60,0.22)");
+  halo.addColorStop(1,"rgba(255,150,0,0)");
+  c.fillStyle=halo; c.beginPath(); c.arc(sx,sy,W*0.34,0,Math.PI*2); c.fill();
+  const disc=c.createRadialGradient(sx,sy,0,sx,sy,44);
+  disc.addColorStop(0,"#fffde0");
+  disc.addColorStop(0.4,"#ffe060");
+  disc.addColorStop(1,"rgba(255,150,0,0.5)");
+  c.fillStyle=disc; c.beginPath(); c.arc(sx,sy,44,0,Math.PI*2); c.fill();
+
+  // ── CLOUDS ──
+  const cl=[{x:0.1,y:0.05,w:130,h:30,op:0.8},{x:0.5,y:0.08,w:160,h:36,op:0.7},{x:0.82,y:0.04,w:100,h:24,op:0.6}];
+  cl.forEach((cd,i)=>{const cx=((cd.x*W+cloudT*0.2*(i%2?0.6:1))%(W+200))-100;drawSoftCloud(c,cx,cd.y*H,cd.w,cd.h,cd.op);});
+
+  // ── DISTANT TREELINE ──
+  const treeHaze=c.createLinearGradient(0,hz-26,0,hz+2);
+  treeHaze.addColorStop(0,"rgba(50,90,44,0)");
+  treeHaze.addColorStop(1,"rgba(38,68,32,0.85)");
+  c.fillStyle=treeHaze;
+  c.beginPath(); c.moveTo(0,hz);
+  let tx=0;
+  while(tx<W){const bw=20+Math.sin(tx*0.1)*8;const bh=14+Math.sin(tx*0.06+1)*7;c.arc(tx+bw/2,hz-bh/2,bw/2,Math.PI,0);tx+=bw;}
+  c.lineTo(W,hz); c.fill();
+
+  // ── GROUND ──
+  const groundG=c.createLinearGradient(0,hz,0,H);
+  groundG.addColorStop(0,"#3a8c30");
+  groundG.addColorStop(0.4,"#54b840");
+  groundG.addColorStop(1,"#74d456");
+  c.fillStyle=groundG; c.fillRect(0,hz,W,H-hz);
+
+  // ── DISTANT FAIRWAY narrowing toward horizon ──
+  const fairTop=W*0.16, fairBot=W*0.6, fairTopY=hz, fairBotY=H*0.5;
+  c.fillStyle="#54bc42";
+  c.beginPath();
+  c.moveTo(VP-fairTop/2,fairTopY); c.lineTo(VP+fairTop/2,fairTopY);
+  c.lineTo(VP+fairBot/2,fairBotY); c.lineTo(VP-fairBot/2,fairBotY);
+  c.fill();
+  c.save();
+  c.beginPath();
+  c.moveTo(VP-fairTop/2,fairTopY); c.lineTo(VP+fairTop/2,fairTopY);
+  c.lineTo(VP+fairBot/2,fairBotY); c.lineTo(VP-fairBot/2,fairBotY);
+  c.clip();
+  for(let i=0;i<8;i++){
+    const t0=i/8,t1=(i+1)/8;
+    const y0=fairTopY+(fairBotY-fairTopY)*t0, y1=fairTopY+(fairBotY-fairTopY)*t1;
+    c.fillStyle=i%2?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.05)";
+    c.fillRect(0,y0,W,y1-y0);
+  }
+  c.restore();
+
+  // ── 7. STRONGER golden haze (shot 4 = even more intense) ──
+  const hazeH=(H-hz)*0.6;
+  const hazeG=c.createLinearGradient(0,hz-26,0,hz+hazeH);
+  hazeG.addColorStop(0,"rgba(255,110,10,0.46)");
+  hazeG.addColorStop(0.16,"rgba(255,180,30,0.80)");
+  hazeG.addColorStop(0.5,"rgba(255,200,80,0.36)");
+  hazeG.addColorStop(1,"rgba(255,210,120,0)");
+  c.fillStyle=hazeG; c.fillRect(0,hz-26,W,hazeH+26);
+
+  // ── BIG FOREGROUND GREEN (~44% width) ──
+  const gx=VP, gy=H*0.66, gRX=W*0.22, gRY=H*0.13;
+  c.fillStyle="rgba(0,0,0,0.18)";
+  c.beginPath(); c.ellipse(gx+4,gy+8,gRX+8,gRY+4,0,0,Math.PI*2); c.fill();
+  const greenG=c.createRadialGradient(gx-gRX*.2,gy-gRY*.3,4,gx,gy,gRX);
+  greenG.addColorStop(0,"#72f890");
+  greenG.addColorStop(0.3,"#4ae068");
+  greenG.addColorStop(0.7,"#28c050");
+  greenG.addColorStop(1,"#178836");
+  c.fillStyle=greenG;
+  c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.fill();
+  c.save();
+  c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.clip();
+  for(let si=-gRX;si<gRX;si+=18){
+    c.fillStyle=(Math.floor((si+gRX)/18))%2?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.05)";
+    c.fillRect(gx+si,gy-gRY,18,gRY*2);
+  }
+  c.restore();
+  c.strokeStyle="#157838"; c.lineWidth=2;
+  c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.stroke();
+  c.fillStyle="rgba(255,255,255,0.16)";
+  c.beginPath(); c.ellipse(gx-gRX*.25,gy-gRY*.3,gRX*.4,gRY*.45,-0.3,0,Math.PI*2); c.fill();
+
+  // ── 4 BUNKERS around the green ──
+  function bunker(bxx,byy,rw,rh,rot){
+    c.fillStyle="#2e8830"; c.beginPath(); c.ellipse(bxx,byy-rh*.4,rw*1.2,rh*1.3,rot,0,Math.PI*2); c.fill();
+    c.fillStyle="#d4b870"; c.beginPath(); c.ellipse(bxx,byy,rw,rh,rot,0,Math.PI*2); c.fill();
+    c.fillStyle="#ecd898"; c.beginPath(); c.ellipse(bxx,byy-rh*.05,rw*.6,rh*.6,rot,0,Math.PI*2); c.fill();
+  }
+  bunker(gx-gRX*0.98, gy+gRY*0.25, W*0.06,  H*0.030, 0.12);
+  bunker(gx+gRX*0.98, gy+gRY*0.25, W*0.055, H*0.028,-0.12);
+  bunker(gx-gRX*0.50, gy-gRY*1.15, W*0.045, H*0.022, 0.20);
+  bunker(gx+gRX*0.55, gy-gRY*1.10, W*0.050, H*0.024,-0.15);
+
+  // ── HOLE + PIN ──
+  const hxp=gx, hyp=gy-gRY*0.1;
+  c.fillStyle="#111";
+  c.beginPath(); c.ellipse(hxp,hyp,6,3,0,0,Math.PI*2); c.fill();
+  const pinH=70;
+  c.strokeStyle="rgba(0,0,0,0.18)"; c.lineWidth=2;
+  c.beginPath(); c.moveTo(hxp+4,hyp); c.lineTo(hxp+8,hyp-pinH); c.stroke();
+  c.strokeStyle="#eee"; c.lineWidth=2.5;
+  c.beginPath(); c.moveTo(hxp,hyp); c.lineTo(hxp,hyp-pinH); c.stroke();
+  const flagW=26, flagH=16, sq=flagW/2;
+  [[0,0,"#fff"],[sq,0,"#222"],[0,flagH/2,"#222"],[sq,flagH/2,"#fff"]].forEach(([fx,fy,fc])=>{
+    c.fillStyle=fc; c.fillRect(hxp+fx,hyp-pinH+fy,sq,flagH/2);
+  });
+  c.fillStyle="rgba(0,0,0,0.35)";
+  c.fillRect(hxp,hyp-pinH,flagW,flagH);
+  c.fillStyle=s.color;
+  c.font="bold 9px sans-serif"; c.textAlign="center";
+  c.fillText(s.icon,hxp+flagW/2,hyp-pinH+12); c.textAlign="left";
+
+  // ── BIG FOREGROUND TREES at the sides ──
+  drawRealisticTree(c,W*0.06,H*0.86,H*0.50,W*0.12,"#164014");
+  drawRealisticTree(c,W*0.15,H*1.00,H*0.60,W*0.15,"#1e5620");
+  drawRealisticTree(c,W*0.94,H*0.86,H*0.50,W*0.12,"#1a4a18");
+  drawRealisticTree(c,W*0.86,H*1.00,H*0.60,W*0.15,"#206028");
+
+  // ── PRE-LAUNCH ball + pulsing arrow on edge of green ──
+  if(phase==="challenge"||phase==="power"){
+    const v=VIEWS[3], px=W*v.ballXf, py=H*v.ballYf;
+    drawPulseArrow(c,px,py);
+    drawBall(c,px,py,7);
+  }
+
+  // ── BALL TRAIL + FLIGHT ──
+  drawTrailAndBall(c,hz,H);
+
+  // ── VIGNETTE ──
+  const vigG=c.createRadialGradient(W*0.5,H*0.55,W*0.2,W*0.5,H*0.55,W*0.8);
+  vigG.addColorStop(0,"rgba(0,0,0,0)");
+  vigG.addColorStop(1,"rgba(0,0,0,0.34)");
   c.fillStyle=vigG; c.fillRect(0,0,W,H);
 }
 
@@ -981,6 +1071,8 @@ function nesTree(c,x,y,s,v){ drawRealisticTree(c,x,y,s*3.5,s*1.4,v?"#1e5620":"#1
 /* ═══════ DRAW ZALLY (left panel close-up) ═══════ */
 function drawZally(s){
   const c=zCtx,W=ZW,H=ZH;
+  // Shot 4: left panel becomes a top-down putting view instead of the idle sprite
+  if(shotIdx===3){ drawTopDownGreen(c,W,H); return; }
   c.clearRect(0,0,W,H);
   /* Background */
   const skyG=c.createLinearGradient(0,0,0,H*.58);
@@ -1002,6 +1094,79 @@ function drawZally(s){
   }else{
     c.fillStyle="rgba(255,255,255,0.2)";c.fillRect(W/2-20,H*.2,40,60);
   }
+}
+
+/* ═══════ 3. SHOT 4 TOP-DOWN PUTTING VIEW (left panel) ═══════ */
+function drawTopDownGreen(c,W,H){
+  c.clearRect(0,0,W,H);
+  // Dark rough background
+  const rg=c.createLinearGradient(0,0,0,H);
+  rg.addColorStop(0,"#0c3014"); rg.addColorStop(1,"#10401a");
+  c.fillStyle=rg; c.fillRect(0,0,W,H);
+  c.fillStyle="rgba(0,0,0,0.12)";
+  for(let i=0;i<70;i++){ c.fillRect((i*53)%W,(i*97)%H,2,2); }
+
+  // Elliptical green with mowing stripes
+  const gx=W*0.5, gy=H*0.5, gRX=W*0.34, gRY=H*0.37;
+  c.fillStyle="rgba(0,0,0,0.25)";
+  c.beginPath(); c.ellipse(gx,gy+4,gRX+4,gRY+3,0,0,Math.PI*2); c.fill();
+  const gg=c.createRadialGradient(gx-gRX*.2,gy-gRY*.2,4,gx,gy,gRX);
+  gg.addColorStop(0,"#5ce078"); gg.addColorStop(0.6,"#36c25a"); gg.addColorStop(1,"#1f9c40");
+  c.fillStyle=gg; c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.fill();
+  c.save();
+  c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.clip();
+  for(let si=-gRX;si<gRX;si+=14){
+    c.fillStyle=(Math.floor((si+gRX)/14))%2?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.06)";
+    c.fillRect(gx+si,gy-gRY,14,gRY*2);
+  }
+  c.restore();
+  c.strokeStyle="#178a36"; c.lineWidth=2;
+  c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.stroke();
+
+  // Hole + pin (seen from above), near the top of the green
+  const hx=gx, hy=gy-gRY*0.55;
+  c.fillStyle="#0a0a0a"; c.beginPath(); c.arc(hx,hy,6,0,Math.PI*2); c.fill();
+  c.fillStyle="#000"; c.beginPath(); c.arc(hx,hy,4,0,Math.PI*2); c.fill();
+  c.strokeStyle="#eee"; c.lineWidth=2;
+  c.beginPath(); c.moveTo(hx,hy); c.lineTo(hx+11,hy-9); c.stroke();
+  c.fillStyle="#e74c3c";
+  c.beginPath(); c.moveTo(hx+11,hy-9); c.lineTo(hx+24,hy-7); c.lineTo(hx+12,hy-2); c.closePath(); c.fill();
+
+  // Geometric Zally figure putting, near the bottom of the green
+  const zx=gx, zy=gy+gRY*0.52;
+  c.fillStyle="rgba(0,0,0,0.20)";
+  c.beginPath(); c.ellipse(zx,zy+15,17,5,0,0,Math.PI*2); c.fill();
+  c.strokeStyle="#cccccc"; c.lineWidth=2;          // putter shaft toward the ball
+  c.beginPath(); c.moveTo(zx+8,zy-1); c.lineTo(zx+1,zy-gRY*0.42); c.stroke();
+  c.fillStyle="#2a3a6a";                            // body
+  c.beginPath(); c.ellipse(zx,zy,11,14,0,0,Math.PI*2); c.fill();
+  c.fillStyle="#3a5a9a";                            // shoulders
+  c.fillRect(zx-13,zy-5,26,8);
+  c.fillStyle="#f0c89a";                            // head
+  c.beginPath(); c.arc(zx,zy-12,7,0,Math.PI*2); c.fill();
+  c.fillStyle="#e74c3c";                            // cap
+  c.beginPath(); c.arc(zx,zy-13,7,Math.PI,0); c.fill();
+
+  // Ball between Zally and the hole
+  const ballX=gx, ballY=gy+gRY*0.05;
+  drawBall(c,ballX,ballY,5);
+
+  // Pulsing directional arrow from ball toward hole
+  const p=(Math.sin(Date.now()*0.005)+1)/2;
+  c.save();
+  c.globalAlpha=0.45+p*0.55;
+  c.strokeStyle="#f5d020"; c.fillStyle="#f5d020"; c.lineWidth=3;
+  const a0=ballY-8, a1=hy+12;
+  c.beginPath(); c.moveTo(ballX,a0); c.lineTo(ballX,a1+8); c.stroke();
+  c.beginPath(); c.moveTo(ballX-6,a1+8); c.lineTo(ballX,a1); c.lineTo(ballX+6,a1+8); c.closePath(); c.fill();
+  c.restore();
+
+  // "PUTTING" label
+  c.fillStyle="rgba(0,0,0,0.62)";
+  c.fillRect(W*0.5-36,H-21,72,15);
+  c.fillStyle="#f1c40f";
+  c.font='6px "Press Start 2P", monospace'; c.textAlign="center";
+  c.fillText("PUTTING",W*0.5,H-10); c.textAlign="left";
 }
 
 /* ═══════ FX ═══════ */
