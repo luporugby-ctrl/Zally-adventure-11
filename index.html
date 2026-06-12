@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
@@ -114,6 +114,17 @@ html,body{width:100%;height:100%;background:#111;display:flex;align-items:center
 #restartBtn{background:transparent;border:2px solid #f1c40f;color:#f1c40f;font-family:"Press Start 2P",monospace;font-size:8px;padding:11px 28px;cursor:pointer;margin-top:6px;}
 #restartBtn:hover{background:#f1c40f;color:#000;}
 @keyframes starFly{0%{transform:scale(0) rotate(0);opacity:1;}100%{transform:scale(1.6) rotate(480deg) translateY(-70px);opacity:0;}}
+
+/* ZALLY KART */
+#kartScene{
+  position:absolute;
+  bottom:38px;
+  left:-220px;
+  z-index:72;
+  pointer-events:none;
+  display:none;
+  filter:drop-shadow(2px 4px 8px rgba(0,0,0,0.55));
+}
 </style>
 </head>
 <body>
@@ -126,13 +137,13 @@ html,body{width:100%;height:100%;background:#111;display:flex;align-items:center
   <div class="i-card">
     <div class="i-card-title">CADDIE BRIEFING - HOLE 18 - PAR 4</div>
     <div class="i-grid">
-      <div class="i-shot"><div class="i-num">🎭</div><div><div class="i-tech" style="color:#e74c3c;">SHOT 1 - ROLE-PLAYING AVANZATO</div><div class="i-desc">Imposta la postura operativa con ruolo, stile e vincoli precisi.</div></div></div>
-      <div class="i-shot"><div class="i-num">🚫</div><div><div class="i-tech" style="color:#e67e22;">SHOT 2 - NEGATIVE PROMPTING</div><div class="i-desc">Vieta esplicitamente i comportamenti indesiderati nell output.</div></div></div>
-      <div class="i-shot"><div class="i-num">🔄</div><div><div class="i-tech" style="color:#3498db;">SHOT 3 - SELF-CORRECTION</div><div class="i-desc">Fai criticare all AI il proprio output prima di rigenerarlo.</div></div></div>
-      <div class="i-shot"><div class="i-num">🧠</div><div><div class="i-tech" style="color:#9b59b6;">SHOT 4 - META-PROMPTING</div><div class="i-desc">Deleghi a Gemini la costruzione del prompt ideale per te.</div></div></div>
+      <div class="i-shot"><div class="i-num">🎭</div><div><div class="i-tech" style="color:#e74c3c;">SHOT 1 - ADVANCED ROLE-PLAYING</div><div class="i-desc">Set your operating stance with precise role, style and constraints.</div></div></div>
+      <div class="i-shot"><div class="i-num">🚫</div><div><div class="i-tech" style="color:#e67e22;">SHOT 2 - NEGATIVE PROMPTING</div><div class="i-desc">Explicitly ban unwanted behaviors from the AI output.</div></div></div>
+      <div class="i-shot"><div class="i-num">🔄</div><div><div class="i-tech" style="color:#3498db;">SHOT 3 - SELF-CORRECTION</div><div class="i-desc">Make the AI critique its own output before regenerating it.</div></div></div>
+      <div class="i-shot"><div class="i-num">🧠</div><div><div class="i-tech" style="color:#9b59b6;">SHOT 4 - META-PROMPTING</div><div class="i-desc">Delegate to Gemini the task of building the ideal prompt for you.</div></div></div>
     </div>
     <div class="i-footer">
-      <div class="i-footer-l">HOLE <b>18</b> &nbsp;-&nbsp; PAR <b>4</b> &nbsp;-&nbsp; WIND <b>VARIABILE</b></div>
+      <div class="i-footer-l">HOLE <b>18</b> &nbsp;-&nbsp; PAR <b>4</b> &nbsp;-&nbsp; WIND <b>VARIABLE</b></div>
       <div class="i-badge">DIFFICULTY: PRO 3/3</div>
     </div>
   </div>
@@ -160,22 +171,22 @@ html,body{width:100%;height:100%;background:#111;display:flex;align-items:center
       <div class="ch-q" id="chQ"></div>
       <div class="ch-ans" id="chAns"></div>
       <div id="fb"></div>
-      <button id="shootBtn" onclick="armShot()">COLPISCI!</button>
+      <button id="shootBtn" onclick="armShot()">SWING!</button>
     </div>
   </div>
   <div id="right"><canvas id="fC" width="562" height="536"></canvas></div>
 </div>
 
 <div id="powerUI">
-  <div class="pw-inst">PREMI SPAZIO o SWING per fermare la potenza!</div>
+  <div class="pw-inst">PRESS SPACE or SWING to stop the power meter!</div>
   <div id="pwTrack"><div id="pwFill"></div></div>
-  <div class="pw-lbs"><span>CORTO</span><span>ZONA IDEALE</span><span>LUNGO</span></div>
+  <div class="pw-lbs"><span>SHORT</span><span>SWEET ZONE</span><span>LONG</span></div>
   <button id="swingBtn" onclick="swing()">SWING!</button>
 </div>
 
 <div id="badge"></div>
 <div id="transition">
-  <div class="tr1">PROSSIMO COLPO</div>
+  <div class="tr1">NEXT SHOT</div>
   <div class="tr2" id="trTech"></div>
   <div class="tr3" id="trSub"></div>
 </div>
@@ -185,51 +196,60 @@ html,body{width:100%;height:100%;background:#111;display:flex;align-items:center
   <div class="wsub" id="wSub"></div>
   <button id="restartBtn" onclick="restart()">PLAY AGAIN</button>
 </div>
+<div id="kartScene"><canvas id="kartC" width="220" height="75"></canvas></div>
 
 </div>
 <script>
 /* ═══════ DATA ═══════ */
 const SHOTS=[
-  {tech:"ROLE-PLAYING AVANZATO",icon:"🎭",color:"#e74c3c",wind:"5 m/s",windDx:1,
-   scenario:"Devi riprogettare i flussi di smistamento Wholesale. Serve che l AI ragioni con logiche lean senza proporre l aumento del personale interinale.",
-   question:"Quale prompt usa correttamente il ROLE-PLAYING AVANZATO?",
-   answers:[
-    {t:"Agisci come un Sr Ops Specialist Wholesale. Proponi soluzioni lean per lo smistamento senza aumentare i costi del personale.",ok:true,w:"Ruolo preciso + stile + vincoli logici = postura da esperto senior."},
-    {t:"Sei un esperto di logistica. Come ottimizzo lo smistamento?",ok:false,w:"Troppo generico. Mancano vincoli lean e sul personale."},
-    {t:"Analizza lo smistamento Wholesale e dammi idee lean.",ok:false,w:"Manca l assegnazione del ruolo. Risposta troppo standard."},
-    {t:"Fai finta di essere un magazziniere e dimmi cosa non va.",ok:false,w:"Ruolo sbagliato rispetto al task analitico che ti serve."}
-   ],
-   feedback:"Il ROLE-PLAYING imposta le System Instructions: definendo persona e vincoli ogni risposta sara coerente con la tua operativita."},
-  {tech:"NEGATIVE PROMPTING",icon:"🚫",color:"#e67e22",wind:"8 m/s",windDx:-0.5,
-   scenario:"Devi inviare un recap delle performance a partner esterni. Gemini non deve usare gergo tecnico da magazzino o output interminabili.",
-   question:"Quale prompt sfrutta il NEGATIVE PROMPTING?",
-   answers:[
-    {t:"Scrivi il report in modo semplice per i partner esterni.",ok:false,w:"Semplice e soggettivo. L AI interpretara a modo suo."},
-    {t:"Fai un riassunto delle performance senza cose complicate.",ok:false,w:"Troppo vago. Il modello ha bisogno di istruzioni esplicite."},
-    {t:"Scrivi il report. NON usare acronimi. NON usare gergo tecnico logistico. NON superare le 100 parole.",ok:true,w:"Divieti espliciti + limite quantitativo = output sotto controllo totale."},
-    {t:"Riassumi le performance in modo professionale.",ok:false,w:"Professionale non impedisce all AI di riempirti di acronimi."}
-   ],
-   feedback:"Il NEGATIVE PROMPTING e chirurgico: NON fare X disattiva i comportamenti di default mantenendo l output pulito."},
-  {tech:"SELF-CORRECTION",icon:"🔄",color:"#3498db",wind:"4 m/s",windDx:0.3,
-   scenario:"Gemini ha generato una SOP per i resi che sembra troppo teorica e difficile da applicare sul floor operativo.",
-   question:"Come usi la SELF-CORRECTION per farla aggiustare all AI stessa?",
-   answers:[
-    {t:"Questa procedura non va bene, rifalla da capo.",ok:false,w:"Non dai nessuna direzione correttiva. L AI ripartira senza capire il problema."},
-    {t:"Riscrivi la procedura in modo piu pratico.",ok:false,w:"Troppo generico. Manca la fase di auto-riflessione sugli errori specifici."},
-    {t:"Rileggi la SOP che hai scritto. Identifica 3 passaggi troppo teorici per chi lavora sul floor e riscrivili in modo pratico.",ok:true,w:"Obblighi l AI a criticare il proprio lavoro prima di rigenerarlo."},
-    {t:"Fai una procedura migliore per il magazzino.",ok:false,w:"Migliore non e un prompt azionabile. Manca la fase riflessiva."}
-   ],
-   feedback:"La SELF-CORRECTION trasforma l AI nel suo stesso editor, forzandola a trovare le proprie falle logiche prima di proseguire."},
-  {tech:"META-PROMPTING",icon:"🧠",color:"#9b59b6",wind:"3 m/s",windDx:0,
-   scenario:"Vuoi creare un modello previsionale complesso per l inbound, ma non sai come scrivere il prompt iniziale per l AI.",
-   question:"Qual e la mossa da META-PROMPTING master?",
-   answers:[
-    {t:"Spiegami come fare un modello previsionale inbound.",ok:false,w:"Risposta educativa, non operativa. Ottieni teoria generica."},
-    {t:"Agisci come Prompt Engineer. Fammi 3 domande sulle mie operations e poi scrivi il prompt per creare il modello previsionale.",ok:true,w:"Usi Gemini per interrogarti ed estrarre il contesto: e la delega ideale."},
-    {t:"Scrivi un prompt per un modello previsionale logistico.",ok:false,w:"Avrai un prompt standard non calibrato sui tuoi dati reali."},
-    {t:"Creiamo un modello previsionale. Che dati ti servono?",ok:false,w:"Buon inizio, ma non chiedi all AI di ingegnerizzare il prompt finale."}
-   ],
-   feedback:"Il META-PROMPTING trasforma Gemini nel tuo Prompt Engineer personale. Invece di cercare la domanda perfetta, chiedi a Gemini di crearla."}
+  {
+    tech:"ADVANCED ROLE-PLAYING",icon:"🎭",color:"#e74c3c",wind:"5 m/s",windDx:1,
+    scenario:"Your supplier keeps uploading invoices incorrectly on the dedicated billing tool, causing processing delays across your team. You need to write a clear, helpful email to guide them through the correct steps.",
+    question:"Which prompt uses ADVANCED ROLE-PLAYING correctly?",
+    answers:[
+      {t:"Act as a Zalando Supplier Support Specialist. Write a step-by-step email guiding the supplier through the correct invoice upload process on our billing tool, using simple and friendly language.",ok:true,w:"Precise role + style + constraints = every response is tailored to your operational context."},
+      {t:"Write an email to my supplier about the invoice upload tool.",ok:false,w:"Too generic. No role defined — the AI has no context to shape the right response."},
+      {t:"You are an expert. Help my supplier upload invoices correctly.",ok:false,w:"'Expert' is too vague. No style, format, or operational constraints are set."},
+      {t:"Write a professional email explaining the invoice uploading steps to my supplier.",ok:false,w:"No role assignment. Without a persona, the output will be generic, not tailored to your context."}
+    ],
+    feedback:"ROLE-PLAYING sets the AI's operating stance: defining persona, style and constraints ensures every response aligns to your specific operational context."
+  },
+  {
+    tech:"NEGATIVE PROMPTING",icon:"🚫",color:"#e67e22",wind:"8 m/s",windDx:-0.5,
+    scenario:"After your weekly ops meeting, you need to send a quick recap to senior management. They have no time — the key message must land in seconds: no jargon, no fluff, no walls of text.",
+    question:"Which prompt uses NEGATIVE PROMPTING correctly?",
+    answers:[
+      {t:"Summarize the meeting notes. DO NOT use internal tool names or acronyms. DO NOT exceed 5 bullet points. DO NOT include technical process details.",ok:true,w:"Explicit bans + quantitative limit = full control over output format and content."},
+      {t:"Make a short and simple summary of these meeting notes.",ok:false,w:"'Short and simple' is subjective. The AI will interpret it however it wants."},
+      {t:"Write a brief summary, avoiding complicated words.",ok:false,w:"No specific constraints — the AI still has too much freedom to add unwanted content."},
+      {t:"Summarize this professionally for management.",ok:false,w:"'Professional' doesn't stop the AI from filling the output with acronyms and jargon."}
+    ],
+    feedback:"NEGATIVE PROMPTING is surgical: explicit DO NOT instructions disable default AI behaviors and keep the output clean and under control."
+  },
+  {
+    tech:"SELF-CORRECTION",icon:"🔄",color:"#3498db",wind:"4 m/s",windDx:0.3,
+    scenario:"Gemini just drafted a supplier handover document in Google Docs to transfer management to another department. Re-reading it, you notice it feels generic and misses the practical details your colleagues will need from day one.",
+    question:"How do you use SELF-CORRECTION to make the AI improve its own output?",
+    answers:[
+      {t:"Re-read the handover doc you just wrote. Identify 3 sections too generic for someone taking over tomorrow — missing contacts, open issues, key deadlines — then rewrite each one with specific details.",ok:true,w:"You force the AI to review its own work, find specific gaps, and fix them. That is true self-correction."},
+      {t:"This document is not good. Redo it from scratch.",ok:false,w:"No direction given. The AI will restart without understanding what was actually wrong."},
+      {t:"Make it more detailed and practical.",ok:false,w:"Too vague. The AI has no criteria to evaluate what is missing or how to fix it."},
+      {t:"Rewrite it in a better way for the new team.",ok:false,w:"'Better' is not actionable. It skips the self-reflection step that makes the technique effective."}
+    ],
+    feedback:"SELF-CORRECTION turns the AI into its own editor — forcing it to find its own gaps before moving forward."
+  },
+  {
+    tech:"META-PROMPTING",icon:"🧠",color:"#9b59b6",wind:"3 m/s",windDx:0,
+    scenario:"You want to build a Google Sheets tracker to monitor your supplier's invoicing performance over time, but you don't know how to structure the request — you're not even sure where to start.",
+    question:"What is the META-PROMPTING master move?",
+    answers:[
+      {t:"Act as a Prompt Engineer. Ask me 3 questions about what I want to track and how I work, then write the perfect prompt to build my supplier performance tracker in Google Sheets.",ok:true,w:"You delegate the prompt creation to Gemini itself — the perfect move when you don't know how to ask."},
+      {t:"Explain how I can build a supplier tracker in Google Sheets.",ok:false,w:"You will get a generic tutorial, not an operational tool built for your specific context."},
+      {t:"Write a prompt for a supplier tracking spreadsheet.",ok:false,w:"You will get a generic prompt — not calibrated on your real data and workflow."},
+      {t:"Let's build a tracker together. What data do you need from me?",ok:false,w:"Good start, but you are still guiding the process. META-PROMPTING means delegating the prompt engineering entirely to Gemini."}
+    ],
+    feedback:"META-PROMPTING turns Gemini into your personal Prompt Engineer. Instead of searching for the perfect question, you ask Gemini to build it for you."
+  }
 ];
 
 /* ═══════ SPRITES ═══════ */
@@ -334,9 +354,9 @@ function pick(chosen){
   });
   const fb=document.getElementById("fb");
   fb.className=correctChosen?"":"bad";fb.style.display="block";
-  fb.textContent=(correctChosen?"CORRETTO! ":"SBAGLIATO! ")+chosen.w;
+  fb.textContent=(correctChosen?"CORRECT! ":"WRONG! ")+chosen.w;
   document.getElementById("shootBtn").style.display="block";
-  document.getElementById("shootBtn").textContent=correctChosen?"PERFETTO - COLPISCI!":"COLPISCI COMUNQUE";
+  document.getElementById("shootBtn").textContent=correctChosen?"PERFECT - SWING!":"SWING ANYWAY";
 }
 
 /* ═══════ POWER ═══════ */
@@ -426,17 +446,27 @@ function nextShot(){
   document.getElementById("trTech").style.color=next.color;
   document.getElementById("trSub").textContent="SHOT "+(shotIdx+2)+" / 4";
   document.getElementById("transition").classList.add("show");
-  setTimeout(()=>{document.getElementById("transition").classList.remove("show");loadShot(shotIdx+1);},2200);
+  startKartAnim();
+  setTimeout(()=>{
+    document.getElementById("transition").classList.remove("show");
+    stopKartAnim();
+    loadShot(shotIdx+1);
+  },2200);
 }
 function showWin(){
   const sc=totalScore===0?"EVEN":totalScore<0?"-"+Math.abs(totalScore):"+"+totalScore;
   const lines=shotResults.map(r=>"SHOT "+r.shot+"  "+r.tech+"\n-> "+r.label).join("\n\n");
-  document.getElementById("wSub").textContent="SCORE FINALE: "+sc+"\n\n"+lines+"\n\nHai padroneggiato 4 tecniche avanzate di Prompt Engineering!\nApplicale su Gemini Workspace!";
+  document.getElementById("wSub").textContent="FINAL SCORE: "+sc+"\n\n"+lines+"\n\nYou have mastered 4 advanced Prompt Engineering techniques!\nStart applying them in your Gemini Workspace today!";
   document.getElementById("win").classList.add("show");
   playVictorySound();
   if(typeof google!=="undefined"&&google.script&&google.script.run)google.script.run.sendCompletionEmail();
 }
-function restart(){totalScore=0;shotResults=[];document.getElementById("win").classList.remove("show");loadShot(0);}
+function restart(){
+  totalScore=0;shotResults=[];
+  stopKartAnim();
+  document.getElementById("win").classList.remove("show");
+  loadShot(0);
+}
 function updateScore(){
   const el=document.getElementById("hScore");
   const ib=document.getElementById("ibScore");
@@ -495,6 +525,108 @@ function ease42(t){
     x-=f/d;
   }
   return ((aY*x+bY)*x+cy)*x;
+}
+
+/* ═══════ ZALLY KART ═══════ */
+let kartX=-220,kartAnim=false,kartT0=0,kartRAF=null;
+function startKartAnim(){
+  if(kartAnim)return;
+  kartX=-220;kartT0=performance.now();kartAnim=true;
+  const el=document.getElementById("kartScene");
+  el.style.display="block";el.style.left=kartX+"px";
+  animKart(performance.now());
+}
+function stopKartAnim(){
+  kartAnim=false;
+  if(kartRAF){cancelAnimationFrame(kartRAF);kartRAF=null;}
+  const el=document.getElementById("kartScene");
+  if(el)el.style.display="none";
+}
+function animKart(ts){
+  if(!kartAnim)return;
+  kartX=-220+(ts-kartT0)*0.52;
+  const el=document.getElementById("kartScene");
+  el.style.left=kartX+"px";
+  drawKartSprite(document.getElementById("kartC").getContext("2d"),ts);
+  if(kartX<940)kartRAF=requestAnimationFrame(animKart);
+  else{kartAnim=false;el.style.display="none";}
+}
+function drawKartSprite(c,ts){
+  const pt=ts*0.012;
+  c.clearRect(0,0,220,75);
+  // Speed lines
+  c.strokeStyle="rgba(255,255,80,0.55)";c.lineWidth=2;
+  [[4,46,25],[3,40,16],[4,53,18],[5,58,12]].forEach(([x,y,l])=>{
+    c.beginPath();c.moveTo(x,y);c.lineTo(x+l,y);c.stroke();
+  });
+  // Exhaust puffs
+  [[23,44,7,0.40],[11,42,10,0.23],[1,40,13,0.11]].forEach(([x,y,r,a],i)=>{
+    c.fillStyle=`rgba(200,200,200,${a})`;
+    c.beginPath();c.arc(x,y+Math.sin(pt+i*1.8)*2,r,0,Math.PI*2);c.fill();
+  });
+  // Shadow
+  c.fillStyle="rgba(0,0,0,0.20)";
+  c.beginPath();c.ellipse(113,71,54,5,0,0,Math.PI*2);c.fill();
+  // Rear wheel
+  [[52,60,13,"#111"],[52,60,9,"#383838"],[52,60,4.5,"#888"]].forEach(([x,y,r,f])=>{
+    c.fillStyle=f;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();
+  });
+  c.strokeStyle="#555";c.lineWidth=1.5;
+  for(let a=0;a<Math.PI*2;a+=Math.PI/3){
+    const cos=Math.cos(a+pt),sin=Math.sin(a+pt);
+    c.beginPath();c.moveTo(52+cos*2,60+sin*2);c.lineTo(52+cos*8.5,60+sin*8.5);c.stroke();
+  }
+  // Front wheel
+  [[163,61,11,"#111"],[163,61,7,"#383838"],[163,61,3.5,"#888"]].forEach(([x,y,r,f])=>{
+    c.fillStyle=f;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();
+  });
+  c.strokeStyle="#555";c.lineWidth=1.5;
+  for(let a=0;a<Math.PI*2;a+=Math.PI/3){
+    const cos=Math.cos(a+pt),sin=Math.sin(a+pt);
+    c.beginPath();c.moveTo(163+cos*1.5,61+sin*1.5);c.lineTo(163+cos*6.5,61+sin*6.5);c.stroke();
+  }
+  // Rear wing
+  c.fillStyle="#f1c40f";
+  c.beginPath();c.moveTo(36,43);c.lineTo(27,26);c.lineTo(42,30);c.lineTo(42,43);c.fill();
+  c.strokeStyle="#c9980a";c.lineWidth=1;
+  c.beginPath();c.moveTo(27,26);c.lineTo(42,30);c.stroke();
+  // Kart body
+  c.fillStyle="#FF6B35";
+  c.beginPath();c.moveTo(40,59);c.lineTo(168,59);c.lineTo(174,41);c.lineTo(36,39);c.closePath();c.fill();
+  c.fillStyle="#CC4820";
+  c.beginPath();c.moveTo(40,51);c.lineTo(168,51);c.lineTo(168,59);c.lineTo(40,59);c.fill();
+  c.fillStyle="rgba(255,255,255,0.14)";
+  c.beginPath();c.moveTo(36,39);c.lineTo(174,41);c.lineTo(174,44);c.lineTo(36,42);c.fill();
+  // Front nose
+  c.fillStyle="#CC4820";
+  c.beginPath();c.moveTo(168,41);c.lineTo(188,46);c.lineTo(180,59);c.lineTo(168,59);c.fill();
+  // Front spoiler
+  c.fillStyle="#f1c40f";
+  c.beginPath();c.moveTo(170,54);c.lineTo(194,51);c.lineTo(193,58);c.lineTo(170,59);c.fill();
+  // Cockpit
+  c.fillStyle="#1a2a3a";
+  c.beginPath();c.moveTo(72,39);c.lineTo(138,40);c.lineTo(133,23);c.lineTo(75,22);c.closePath();c.fill();
+  // Windscreen
+  c.fillStyle="rgba(100,190,255,0.60)";
+  c.beginPath();c.moveTo(98,39);c.lineTo(138,40);c.lineTo(134,25);c.lineTo(100,24);c.fill();
+  c.strokeStyle="rgba(180,230,255,0.45)";c.lineWidth=1;
+  c.beginPath();c.moveTo(100,24);c.lineTo(134,25);c.stroke();
+  // Driver body
+  c.fillStyle="#2471a3";c.fillRect(83,8,16,18);
+  // Helmet
+  c.fillStyle="#FF6B35";
+  c.beginPath();c.arc(91,9,11,0,Math.PI*2);c.fill();
+  c.fillStyle="rgba(10,10,40,0.88)";
+  c.beginPath();c.moveTo(83,8);c.lineTo(100,8);c.lineTo(100,15);c.lineTo(83,15);c.fill();
+  c.strokeStyle="rgba(120,200,255,0.65)";c.lineWidth=1;
+  c.beginPath();c.moveTo(83,8);c.lineTo(100,8);c.stroke();
+  c.strokeStyle="#f1c40f";c.lineWidth=2;
+  c.beginPath();c.moveTo(91,0);c.lineTo(91,7);c.stroke();
+  // Labels
+  c.fillStyle="#fff";c.font="bold 9px Arial";c.textAlign="center";
+  c.fillText("18",106,55);
+  c.font="5px Arial";c.fillText("ZALLY",62,51);
+  c.textAlign="left";
 }
 
 /* ═══════ DRAW FIELD ═══════ */
