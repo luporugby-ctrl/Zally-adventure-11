@@ -125,16 +125,12 @@ html,body{width:100%;height:100%;background:#111;display:flex;align-items:center
   display:none;
   filter:drop-shadow(2px 4px 8px rgba(0,0,0,0.55));
 }
-/* Real pixel-art kart sprite (PNG asset). Flipped so it faces the travel direction.
-   Soft edge mask blends the square artwork into the dark transition screen. */
+/* Real pixel-art kart sprite (transparent PNG). Flipped so it faces the travel direction. */
 #kartImg{
   display:none;
   height:150px;width:auto;
   image-rendering:pixelated;
   transform:scaleX(-1);
-  border-radius:8px;
-  -webkit-mask-image:radial-gradient(ellipse 78% 82% at 50% 50%,#000 60%,transparent 100%);
-  mask-image:radial-gradient(ellipse 78% 82% at 50% 50%,#000 60%,transparent 100%);
 }
 </style>
 </head>
@@ -207,7 +203,7 @@ html,body{width:100%;height:100%;background:#111;display:flex;align-items:center
   <div class="wsub" id="wSub"></div>
   <button id="restartBtn" onclick="restart()">PLAY AGAIN</button>
 </div>
-<div id="kartScene"><img id="kartImg" src="Zally_kart.png" alt="Zally Kart"/><canvas id="kartC" width="220" height="75"></canvas></div>
+<div id="kartScene"><img id="kartImg" src="Zally_kart_nobg.png" alt="Zally Kart"/><canvas id="kartC" width="220" height="75"></canvas></div>
 
 </div>
 <script>
@@ -539,12 +535,12 @@ function ease42(t){
 }
 
 /* ═══════ ZALLY KART ═══════ */
-// Real pixel-art sprite (added to the repo as Zally_kart.png). Falls back to the
+// Real pixel-art sprite (transparent PNG in the repo). Falls back to the
 // hand-drawn vector kart if the PNG is missing so the game always works.
 const SPR_KART=new Image();
 let kartImgOK=false;
 SPR_KART.onload=()=>{kartImgOK=SPR_KART.naturalWidth>0;};
-SPR_KART.src="Zally_kart.png";
+SPR_KART.src="Zally_kart_nobg.png";
 let kartX=-220,kartAnim=false,kartT0=0,kartRAF=null;
 function startKartAnim(){
   if(kartAnim)return;
