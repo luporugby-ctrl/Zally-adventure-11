@@ -279,7 +279,7 @@ const VIEWS=[
   {hz:FH*0.42, ballXf:.50, ballYf:.87, tee:true,  zallyHf:.22},
   {hz:FH*0.40, ballXf:.50, ballYf:.72, tee:false, zallyHf:.18},
   {hz:FH*0.37, ballXf:.50, ballYf:.62, tee:false, zallyHf:.14},
-  {hz:FH*0.25, ballXf:.44, ballYf:.52, tee:false, zallyHf:.00},
+  {hz:FH*0.25, ballXf:.40, ballYf:.70, tee:false, zallyHf:.30},
 ];
 const EXPAND_MS=500;                 // duration of canvas-expand animation (matches CSS panel slide)
 let expandStart=0;                   // perf.now() when panel slide begins; animates fieldW 562->900
@@ -502,7 +502,7 @@ function nextShot(){
     document.getElementById("transition").classList.remove("show");
     stopKartAnim();
     loadShot(shotIdx+1);
-  },2200);
+  },3500);   // matches the slower kart so it fully crosses before the wipe ends
 }
 function showWin(){
   const sc=totalScore===0?"EVEN":totalScore<0?"-"+Math.abs(totalScore):"+"+totalScore;
@@ -601,7 +601,7 @@ function stopKartAnim(){
 }
 function animKart(ts){
   if(!kartAnim)return;
-  kartX=-220+(ts-kartT0)*0.52;
+  kartX=-220+(ts-kartT0)*0.34;   // slower, more relaxed crossing
   const el=document.getElementById("kartScene");
   el.style.left=kartX+"px";
   const img=document.getElementById("kartImg"), cnv=document.getElementById("kartC");
@@ -962,9 +962,14 @@ function drawFieldNormal(s){
     c.save(); c.beginPath(); c.ellipse(bxx,byy,rw,rh,rot,0,Math.PI*2); c.clip();
     c.fillStyle=rimG; c.fillRect(bxx-rw,byy-rh,rw*2,rh*2); c.restore();
   }
-  drawBunker(VP-gHW*.6, gY+6, 20, 7, 0.1);
-  drawBunker(VP+gHW*.6, gY+6, 18, 6, -0.1);
-  drawBunker(VP-8, hz+(H-hz)*.42, 14,5, 0.05);
+  // Two greenside bunkers (mirrored) + two fairway bunkers nearer the player.
+  // Sizes grow with depth so closer hazards read larger — intentional, symmetric.
+  const fairHW=t=>(FW_TOP/2)+(FW_BOT/2-FW_TOP/2)*t;
+  drawBunker(VP-gHW*0.64, gY+5, 18, 6,  0.12);
+  drawBunker(VP+gHW*0.64, gY+5, 18, 6, -0.12);
+  const fbY=hz+(H-hz)*0.46, fbHW=fairHW(0.46);
+  drawBunker(VP-fbHW*0.72, fbY, 27, 9.5,  0.10);
+  drawBunker(VP+fbHW*0.72, fbY, 27, 9.5, -0.10);
 
   // ── GREEN ──
   const gx=VP, gy=gY, gRX=52, gRY=15;
@@ -1197,12 +1202,36 @@ function drawFieldShot4(s){
   drawRealisticTree(c,W*0.94,H*0.86,H*0.50,W*0.12,"#1a4a18");
   drawRealisticTree(c,W*0.86,H*1.00,H*0.60,W*0.15,"#206028");
 
-  // ── PRE-LAUNCH ball + pulsing arrow on edge of green ──
+  // ── PUTTING SETUP: aim line · Zally · ball — laid out on a clean diagonal ──
+  const v=VIEWS[3], bX=W*v.ballXf, bY=H*v.ballYf;
+  // Dotted aim line ball → cup (only while lining up the putt)
   if(phase==="challenge"||phase==="power"){
-    const v=VIEWS[3], px=W*v.ballXf, py=H*v.ballYf;
-    drawPulseArrow(c,px,py);
-    drawBall(c,px,py,7);
+    c.save();
+    c.strokeStyle="rgba(255,255,255,0.55)"; c.lineWidth=2; c.setLineDash([5,6]);
+    c.beginPath(); c.moveTo(bX,bY); c.lineTo(hxp,hyp); c.stroke();
+    c.setLineDash([]);
+    // small target ring around the cup
+    c.strokeStyle="rgba(255,255,255,0.4)"; c.lineWidth=1.5;
+    c.beginPath(); c.ellipse(hxp,hyp,11,5,0,0,Math.PI*2); c.stroke();
+    c.restore();
   }
+  // Zally addressing the ball — stands just behind it, toward the camera
+  if(SPR_SWING.complete && SPR_SWING.naturalWidth>0){
+    const zH=H*v.zallyHf, zW=zH*(SPR_SWING.naturalWidth/SPR_SWING.naturalHeight);
+    const zFeetX=bX-W*0.055, zFeetY=bY+H*0.055;
+    const zX=zFeetX-zW*0.5-zW*0.12;
+    c.fillStyle="rgba(0,0,0,0.20)";
+    c.beginPath(); c.ellipse(zFeetX,zFeetY,zW*.34,7,0,0,Math.PI*2); c.fill();
+    c.imageSmoothingEnabled=true; c.imageSmoothingQuality="high";
+    c.drawImage(SPR_SWING,zX,zFeetY-zH,zW,zH);
+    if(zallyState==="swing"){
+      c.strokeStyle="rgba(255,255,80,0.4)"; c.lineWidth=2; c.setLineDash([4,5]);
+      c.beginPath(); c.arc(zX+zW*.72,zFeetY-zH*.6,zW*.5,-1.7,-0.1); c.stroke();
+      c.setLineDash([]);
+    }
+  }
+  // Pre-launch ball resting on the green
+  if(phase==="challenge"||phase==="power") drawBall(c,bX,bY,7);
 
   // ── BALL TRAIL + FLIGHT ──
   drawTrailAndBall(c,hz,H);
