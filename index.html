@@ -54,8 +54,6 @@ html,body{width:100%;height:100%;background:#111;display:flex;align-items:center
 }
 #left.hidden{transform:translateX(-340px);opacity:0;pointer-events:none;}
 
-#zView{height:190px;position:relative;overflow:hidden;flex-shrink:0;background:linear-gradient(180deg,#3a80c0 0%,#68b8e8 55%,#28b855 55%,#1a7838 100%);}
-#zC{position:absolute;top:0;left:0;width:336px;height:190px;}
 #iBar{display:flex;justify-content:space-between;align-items:center;padding:4px 10px;background:#020c1a;border-top:1px solid #0a2540;border-bottom:1px solid #0a2540;flex-shrink:0;}
 .ib{color:#4a7a9a;font-size:6px;} .ib b{color:#f1c40f;}
 #ch{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;padding:10px 12px 8px;scrollbar-width:thin;scrollbar-color:rgba(58,138,255,.45) transparent;}
@@ -169,7 +167,6 @@ html,body{width:100%;height:100%;background:#111;display:flex;align-items:center
 
 <div id="split">
   <div id="left">
-    <div id="zView"><canvas id="zC" width="336" height="190"></canvas></div>
     <div id="iBar">
       <div class="ib">WIND <b id="ibWind">-</b></div>
       <div class="ib">SHOT <b id="ibShot">1/4</b></div>
@@ -279,7 +276,7 @@ const VIEWS=[
   {hz:FH*0.42, ballXf:.50, ballYf:.87, tee:true,  zallyHf:.22},
   {hz:FH*0.40, ballXf:.50, ballYf:.72, tee:false, zallyHf:.18},
   {hz:FH*0.37, ballXf:.50, ballYf:.62, tee:false, zallyHf:.14},
-  {hz:FH*0.25, ballXf:.40, ballYf:.70, tee:false, zallyHf:.30},
+  {hz:FH*0.25, ballXf:.40, ballYf:.70, tee:false, zallyHf:.20},
 ];
 const EXPAND_MS=500;                 // duration of canvas-expand animation (matches CSS panel slide)
 let expandStart=0;                   // perf.now() when panel slide begins; animates fieldW 562->900
@@ -298,15 +295,13 @@ let shotDist=0;                       // landing distance to hole → drives the
 let cupFxT=0,puttMade=false;          // drop-in flash timer + whether the putt was holed
 let zallyState="idle";
 let cloudT=0;
-let fCtx,zCtx,fCanvas;
+let fCtx,fCanvas;
 
 /* ═══════ BOOT ═══════ */
 document.addEventListener("DOMContentLoaded",()=>{
   fCanvas=document.getElementById("fC");
   fCtx=fCanvas.getContext("2d");
-  zCtx=document.getElementById("zC").getContext("2d");
   drawField(SHOTS[0]);
-  drawZally(SHOTS[0]);
   document.addEventListener("keydown",e=>{
     if(e.code==="Space"){e.preventDefault();if(phase==="power")swing();}
   });
@@ -568,7 +563,6 @@ function loop(){
   camOffX+=(camOffXTarget-camOffX)*0.08;
 
   drawField(SHOTS[shotIdx]||SHOTS[0]);
-  drawZally(SHOTS[shotIdx]||SHOTS[0]);
   if(phase==="flight")updateBall();
   if(phase==="sinking"){
     const hole=holePos();
@@ -1343,107 +1337,6 @@ function drawRealisticTree(c,x,y,h,w,darkCol){
 
 function pixelCloud(c,x,y,sc){ drawSoftCloud(c,x,y,sc*70,sc*28,0.82); }
 function nesTree(c,x,y,s,v){ drawRealisticTree(c,x,y,s*3.5,s*1.4,v?"#1e5620":"#164014"); }
-
-/* ═══════ DRAW ZALLY (left panel close-up) ═══════ */
-function drawZally(s){
-  const c=zCtx,W=ZW,H=ZH;
-  // Shot 4: left panel becomes a top-down putting view instead of the idle sprite
-  if(shotIdx===3){ drawTopDownGreen(c,W,H); return; }
-  c.clearRect(0,0,W,H);
-  /* Background */
-  const skyG=c.createLinearGradient(0,0,0,H*.58);
-  skyG.addColorStop(0,"#3a80c0");skyG.addColorStop(1,"#68b8e8");
-  c.fillStyle=skyG;c.fillRect(0,0,W,H*.58);
-  c.fillStyle="#0c3416";
-  for(let i=0;i<14;i++){const tx=i*25+2,th=14+Math.sin(i*2.4)*6;c.beginPath();c.moveTo(tx,H*.58);c.lineTo(tx+8,H*.58-th);c.lineTo(tx+16,H*.58);c.fill();}
-  const gG=c.createLinearGradient(0,H*.58,0,H);
-  gG.addColorStop(0,"#28b855");gG.addColorStop(1,"#1a7838");
-  c.fillStyle=gG;c.fillRect(0,H*.58,W,H*.42);
-  c.fillStyle="#30cc62";c.fillRect(W*.15,H*.58,W*.70,H*.42);
-  /* Always show IDLE sprite in challenge panel */
-  const spr=SPR_IDLE;
-  if(spr.complete&&spr.naturalWidth>0){
-    const sprH=H*0.92,sprW=sprH;
-    const sprX=(W-sprW)/2,sprY=H-sprH+4;
-    c.fillStyle="rgba(0,0,0,0.22)";c.beginPath();c.ellipse(sprX+sprW/2,H-6,sprW*0.32,7,0,0,Math.PI*2);c.fill();
-    c.imageSmoothingEnabled=false;c.drawImage(spr,sprX,sprY,sprW,sprH);
-  }else{
-    c.fillStyle="rgba(255,255,255,0.2)";c.fillRect(W/2-20,H*.2,40,60);
-  }
-}
-
-/* ═══════ 3. SHOT 4 TOP-DOWN PUTTING VIEW (left panel) ═══════ */
-function drawTopDownGreen(c,W,H){
-  c.clearRect(0,0,W,H);
-  // Dark rough background
-  const rg=c.createLinearGradient(0,0,0,H);
-  rg.addColorStop(0,"#0c3014"); rg.addColorStop(1,"#10401a");
-  c.fillStyle=rg; c.fillRect(0,0,W,H);
-  c.fillStyle="rgba(0,0,0,0.12)";
-  for(let i=0;i<70;i++){ c.fillRect((i*53)%W,(i*97)%H,2,2); }
-
-  // Elliptical green with mowing stripes
-  const gx=W*0.5, gy=H*0.5, gRX=W*0.34, gRY=H*0.37;
-  c.fillStyle="rgba(0,0,0,0.25)";
-  c.beginPath(); c.ellipse(gx,gy+4,gRX+4,gRY+3,0,0,Math.PI*2); c.fill();
-  const gg=c.createRadialGradient(gx-gRX*.2,gy-gRY*.2,4,gx,gy,gRX);
-  gg.addColorStop(0,"#5ce078"); gg.addColorStop(0.6,"#36c25a"); gg.addColorStop(1,"#1f9c40");
-  c.fillStyle=gg; c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.fill();
-  c.save();
-  c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.clip();
-  for(let si=-gRX;si<gRX;si+=14){
-    c.fillStyle=(Math.floor((si+gRX)/14))%2?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.06)";
-    c.fillRect(gx+si,gy-gRY,14,gRY*2);
-  }
-  c.restore();
-  c.strokeStyle="#178a36"; c.lineWidth=2;
-  c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.stroke();
-
-  // Hole + pin (seen from above), near the top of the green
-  const hx=gx, hy=gy-gRY*0.55;
-  c.fillStyle="#0a0a0a"; c.beginPath(); c.arc(hx,hy,6,0,Math.PI*2); c.fill();
-  c.fillStyle="#000"; c.beginPath(); c.arc(hx,hy,4,0,Math.PI*2); c.fill();
-  c.strokeStyle="#eee"; c.lineWidth=2;
-  c.beginPath(); c.moveTo(hx,hy); c.lineTo(hx+11,hy-9); c.stroke();
-  c.fillStyle="#e74c3c";
-  c.beginPath(); c.moveTo(hx+11,hy-9); c.lineTo(hx+24,hy-7); c.lineTo(hx+12,hy-2); c.closePath(); c.fill();
-
-  // Geometric Zally figure putting, near the bottom of the green
-  const zx=gx, zy=gy+gRY*0.52;
-  c.fillStyle="rgba(0,0,0,0.20)";
-  c.beginPath(); c.ellipse(zx,zy+15,17,5,0,0,Math.PI*2); c.fill();
-  c.strokeStyle="#cccccc"; c.lineWidth=2;          // putter shaft toward the ball
-  c.beginPath(); c.moveTo(zx+8,zy-1); c.lineTo(zx+1,zy-gRY*0.42); c.stroke();
-  c.fillStyle="#2a3a6a";                            // body
-  c.beginPath(); c.ellipse(zx,zy,11,14,0,0,Math.PI*2); c.fill();
-  c.fillStyle="#3a5a9a";                            // shoulders
-  c.fillRect(zx-13,zy-5,26,8);
-  c.fillStyle="#f0c89a";                            // head
-  c.beginPath(); c.arc(zx,zy-12,7,0,Math.PI*2); c.fill();
-  c.fillStyle="#e74c3c";                            // cap
-  c.beginPath(); c.arc(zx,zy-13,7,Math.PI,0); c.fill();
-
-  // Ball between Zally and the hole
-  const ballX=gx, ballY=gy+gRY*0.05;
-  drawBall(c,ballX,ballY,5);
-
-  // Pulsing directional arrow from ball toward hole
-  const p=(Math.sin(Date.now()*0.005)+1)/2;
-  c.save();
-  c.globalAlpha=0.45+p*0.55;
-  c.strokeStyle="#f5d020"; c.fillStyle="#f5d020"; c.lineWidth=3;
-  const a0=ballY-8, a1=hy+12;
-  c.beginPath(); c.moveTo(ballX,a0); c.lineTo(ballX,a1+8); c.stroke();
-  c.beginPath(); c.moveTo(ballX-6,a1+8); c.lineTo(ballX,a1); c.lineTo(ballX+6,a1+8); c.closePath(); c.fill();
-  c.restore();
-
-  // "PUTTING" label
-  c.fillStyle="rgba(0,0,0,0.62)";
-  c.fillRect(W*0.5-36,H-21,72,15);
-  c.fillStyle="#f1c40f";
-  c.font='6px "Press Start 2P", monospace'; c.textAlign="center";
-  c.fillText("PUTTING",W*0.5,H-10); c.textAlign="left";
-}
 
 /* ═══════ FX ═══════ */
 function spawnStars(n){
