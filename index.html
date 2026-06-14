@@ -342,6 +342,7 @@ function loadShot(idx){
   document.getElementById("ibShot").textContent=(idx+1)+"/4";
   const tag=document.getElementById("chTag");
   tag.textContent=s.icon+" "+s.tech;tag.style.color=s.color;tag.style.borderColor=s.color;
+  applyShotLabels();
   document.getElementById("chScen").textContent=s.scenario;
   document.getElementById("chQ").textContent=s.question;
   const grid=document.getElementById("chAns");grid.innerHTML="";
@@ -372,7 +373,18 @@ function pick(chosen){
   fb.className=correctChosen?"":"bad";fb.style.display="block";
   fb.textContent=(correctChosen?"CORRECT! ":"WRONG! ")+chosen.w;
   document.getElementById("shootBtn").style.display="block";
-  document.getElementById("shootBtn").textContent=correctChosen?"PERFECT - SWING!":"SWING ANYWAY";
+  const verb=shotIdx===3?"PUTT":"SWING";
+  document.getElementById("shootBtn").textContent=correctChosen?("PERFECT - "+verb+"!"):(verb+" ANYWAY");
+}
+
+/* Putt vs full-swing wording on the power meter & action buttons */
+function applyShotLabels(){
+  const putt=shotIdx===3, verb=putt?"PUTT":"SWING";
+  document.querySelector(".pw-inst").textContent=
+    "PRESS SPACE or "+verb+" to "+(putt?"set your putt strength!":"stop the power meter!");
+  const lbs=document.querySelectorAll(".pw-lbs span");
+  if(lbs.length===3){lbs[0].textContent="SHORT";lbs[1].textContent=putt?"PERFECT":"SWEET ZONE";lbs[2].textContent="LONG";}
+  document.getElementById("swingBtn").textContent=verb+"!";
 }
 
 /* ═══════ POWER ═══════ */
@@ -405,7 +417,7 @@ function swing(){
 // Screen position of the hole/pin for the current shot (landing target reference)
 function holePos(){
   const W=fieldW,H=FH;
-  if(shotIdx===3)return {x:W*0.5, y:H*0.66-H*0.13*0.1};     // shot-4 close-up cup
+  if(shotIdx===3)return {x:W*0.5, y:H*0.66-H*0.16*0.1};     // shot-4 close-up cup (matches drawFieldShot4)
   const hz=currentHz, gY=hz+(H-hz)*0.18;                    // matches drawFieldNormal green
   return {x:W*0.5, y:gY};
 }
@@ -1144,8 +1156,8 @@ function drawFieldShot4(s){
   hazeG.addColorStop(1,"rgba(255,210,120,0)");
   c.fillStyle=hazeG; c.fillRect(0,hz-26,W,hazeH+26);
 
-  // ── BIG FOREGROUND GREEN (~44% width) ──
-  const gx=VP, gy=H*0.66, gRX=W*0.22, gRY=H*0.13;
+  // ── BIG FOREGROUND GREEN — rounder ellipse = higher, more top-down camera ──
+  const gx=VP, gy=H*0.66, gRX=W*0.22, gRY=H*0.16;
   c.fillStyle="rgba(0,0,0,0.18)";
   c.beginPath(); c.ellipse(gx+4,gy+8,gRX+8,gRY+4,0,0,Math.PI*2); c.fill();
   const greenG=c.createRadialGradient(gx-gRX*.2,gy-gRY*.3,4,gx,gy,gRX);
@@ -1166,6 +1178,22 @@ function drawFieldShot4(s){
   c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.stroke();
   c.fillStyle="rgba(255,255,255,0.16)";
   c.beginPath(); c.ellipse(gx-gRX*.25,gy-gRY*.3,gRX*.4,gRY*.45,-0.3,0,Math.PI*2); c.fill();
+
+  // ── GREEN READING — faint contour rings around the high side (slope read) ──
+  if(phase==="challenge"||phase==="power"){
+    c.save();
+    c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.clip();
+    const pkX=gx+gRX*0.5, pkY=gy-gRY*0.45;   // high point: back-right of the green
+    for(let i=1;i<=4;i++){
+      c.strokeStyle=`rgba(235,255,240,${0.13-i*0.02})`;
+      c.lineWidth=1.1;
+      c.beginPath(); c.ellipse(pkX,pkY,gRX*0.16*i,gRY*0.2*i,-0.15,0,Math.PI*2); c.stroke();
+    }
+    // tiny "HIGH" tick at the peak
+    c.fillStyle="rgba(235,255,240,0.5)";
+    c.beginPath(); c.arc(pkX,pkY,1.6,0,Math.PI*2); c.fill();
+    c.restore();
+  }
 
   // ── BUNKERS — two, symmetric, framing the front of the green ──
   function bunker(bxx,byy,rw,rh,rot){
