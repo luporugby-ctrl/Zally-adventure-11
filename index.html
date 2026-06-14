@@ -295,6 +295,7 @@ let p0x=0,p0y=0,tgX=0,tgY=0;          // launch point + landing target
 let ballShadowY=0;                    // ground-plane y for the ball shadow
 let rolling=false,rollP=0,rollDur=18,rollFromX=0,rollFromY=0,rollToX=0,rollToY=0;
 let shotDist=0;                       // landing distance to hole → drives the score
+let cupFxT=0,puttMade=false;          // drop-in flash timer + whether the putt was holed
 let zallyState="idle";
 let cloudT=0;
 let fCtx,zCtx,fCanvas;
@@ -323,7 +324,7 @@ function startGame(){
 /* ═══════ LOAD SHOT ═══════ */
 function loadShot(idx){
   shotIdx=idx;answered=false;correctChosen=false;
-  ballLanded=false;trail=[];zallyState="idle";phase="challenge";
+  ballLanded=false;trail=[];zallyState="idle";phase="challenge";cupFxT=0;puttMade=false;
   // Restore split layout
   document.getElementById("left").classList.remove("hidden");
   document.getElementById("right").classList.remove("full");
@@ -458,8 +459,8 @@ function updateBall(){
 function startRollOrLand(){
   const hole=holePos();
   shotDist=Math.hypot(bx-hole.x,by-hole.y);
-  let frac=0;
-  if(correctChosen && shotDist<FH*0.035) frac=1;     // true make → into the hole
+  let frac=0; puttMade=false;
+  if(correctChosen && shotDist<FH*0.035){frac=1; puttMade=true;}  // true make → into the hole
   else if(shotDist<FH*0.12) frac=0.4;                 // settle naturally toward the pin
   if(frac>0){
     rolling=true; rollP=0; rollDur=Math.round(14+frac*12);
@@ -475,7 +476,7 @@ function updateRoll(){
   bx=rollFromX+(rollToX-rollFromX)*e;
   by=rollFromY+(rollToY-rollFromY)*e; ballShadowY=by;
   trail.push({x:bx,y:by}); if(trail.length>12)trail.shift();
-  if(rollP>=1){ rolling=false; phase="result"; setTimeout(evalShot,450); }
+  if(rollP>=1){ rolling=false; phase="result"; if(puttMade)cupFxT=performance.now(); setTimeout(evalShot,450); }
 }
 
 /* ═══════ EVAL ═══════ */
@@ -1207,6 +1208,10 @@ function drawFieldShot4(s){
 
   // ── HOLE + PIN ──
   const hxp=gx, hyp=gy-gRY*0.1;
+  // drop-in flash progress (0→1 over 520ms); a fresh make also shakes the flag
+  const nowMs=performance.now();
+  let cupE=cupFxT?(nowMs-cupFxT)/520:1; if(cupE>=1)cupFxT=0;
+  const flagShake=cupFxT?Math.sin(nowMs*0.05)*5*(1-cupE):0;
   c.fillStyle="#111";
   c.beginPath(); c.ellipse(hxp,hyp,6,3,0,0,Math.PI*2); c.fill();
   const pinH=70;
@@ -1214,21 +1219,30 @@ function drawFieldShot4(s){
   c.beginPath(); c.moveTo(hxp+4,hyp); c.lineTo(hxp+8,hyp-pinH); c.stroke();
   c.strokeStyle="#eee"; c.lineWidth=2.5;
   c.beginPath(); c.moveTo(hxp,hyp); c.lineTo(hxp,hyp-pinH); c.stroke();
-  const flagW=26, flagH=16, sq=flagW/2;
-  [[0,0,"#fff"],[sq,0,"#222"],[0,flagH/2,"#222"],[sq,flagH/2,"#fff"]].forEach(([fx,fy,fc])=>{
-    c.fillStyle=fc; c.fillRect(hxp+fx,hyp-pinH+fy,sq,flagH/2);
-  });
-  c.fillStyle="rgba(0,0,0,0.35)";
-  c.fillRect(hxp,hyp-pinH,flagW,flagH);
+  c.fillStyle="#f5f5f5";  // pole top knob
+  c.beginPath(); c.arc(hxp,hyp-pinH,2.6,0,Math.PI*2); c.fill();
+  // ── WAVING checkered flag (strips offset by a travelling sine) ──
+  const flagW=28, flagH=16, fTop=hyp-pinH, N=10, sw=flagW/N;
+  for(let i=0;i<N;i++){
+    const fx=(i+0.5)/N;
+    const wave=Math.sin(cloudT*0.22 + fx*5.2)*(3.2*fx) + flagShake*fx;  // 0 at pole → max at free edge
+    const col=fx<0.5?0:1;
+    for(let r=0;r<2;r++){
+      c.fillStyle=((col+r)%2===0)?"#f8f8f8":"#222";
+      c.fillRect(hxp+i*sw, fTop+r*(flagH/2)+wave, sw+0.6, flagH/2);
+    }
+    c.fillStyle="rgba(0,0,0,0.18)";   // soft shading along the lower edge
+    c.fillRect(hxp+i*sw, fTop+flagH-2+wave, sw+0.6, 2);
+  }
   c.fillStyle=s.color;
-  c.font="bold 9px sans-serif"; c.textAlign="center";
-  c.fillText(s.icon,hxp+flagW/2,hyp-pinH+12); c.textAlign="left";
+  c.font="bold 8px sans-serif"; c.textAlign="center";
+  c.fillText(s.icon,hxp+flagW*0.5,fTop+flagH*0.72+Math.sin(cloudT*0.22+2.6)*1.4); c.textAlign="left";
 
-  // ── BIG FOREGROUND TREES at the sides ──
-  drawRealisticTree(c,W*0.06,H*0.86,H*0.50,W*0.12,"#164014");
-  drawRealisticTree(c,W*0.15,H*1.00,H*0.60,W*0.15,"#1e5620");
-  drawRealisticTree(c,W*0.94,H*0.86,H*0.50,W*0.12,"#1a4a18");
-  drawRealisticTree(c,W*0.86,H*1.00,H*0.60,W*0.15,"#206028");
+  // ── FOREGROUND TREES — pushed to the edges so they frame without crowding Zally ──
+  drawRealisticTree(c,W*0.02,H*0.86,H*0.46,W*0.11,"#164014");
+  drawRealisticTree(c,W*0.09,H*1.00,H*0.54,W*0.13,"#1e5620");
+  drawRealisticTree(c,W*0.95,H*0.86,H*0.50,W*0.12,"#1a4a18");
+  drawRealisticTree(c,W*0.88,H*1.00,H*0.60,W*0.15,"#206028");
 
   // ── PUTTING SETUP: aim line · Zally · ball — laid out on a clean diagonal ──
   const v=VIEWS[3], bX=W*v.ballXf, bY=H*v.ballYf;
@@ -1263,6 +1277,17 @@ function drawFieldShot4(s){
 
   // ── BALL TRAIL + FLIGHT ──
   drawTrailAndBall(c,hz,H);
+
+  // ── DROP-IN FLASH — expanding ring + warm glow when the putt is holed ──
+  if(cupFxT){
+    const e=Math.min(1,(performance.now()-cupFxT)/520);
+    const glow=c.createRadialGradient(hxp,hyp,0,hxp,hyp,34);
+    glow.addColorStop(0,`rgba(255,246,190,${(1-e)*0.55})`);
+    glow.addColorStop(1,"rgba(255,246,190,0)");
+    c.fillStyle=glow; c.beginPath(); c.arc(hxp,hyp,34,0,Math.PI*2); c.fill();
+    c.strokeStyle=`rgba(255,255,255,${(1-e)*0.9})`; c.lineWidth=2.5*(1-e)+0.6;
+    c.beginPath(); c.ellipse(hxp,hyp,6+e*28,3+e*14,0,0,Math.PI*2); c.stroke();
+  }
 
   // ── VIGNETTE ──
   const vigG=c.createRadialGradient(W*0.5,H*0.55,W*0.2,W*0.5,H*0.55,W*0.8);
