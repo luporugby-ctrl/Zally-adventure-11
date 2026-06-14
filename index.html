@@ -1251,10 +1251,10 @@ function drawFieldShot4(s){
     c.beginPath(); c.ellipse(hxp,hyp,11,5,0,0,Math.PI*2); c.stroke();
     c.restore();
   }
-  // Zally addressing the ball — stands just behind it, toward the camera
+  // Zally addressing the ball — standing on the green beside it (clear of the bunkers)
   if(SPR_SWING.complete && SPR_SWING.naturalWidth>0){
     const zH=H*v.zallyHf, zW=zH*(SPR_SWING.naturalWidth/SPR_SWING.naturalHeight);
-    const zFeetX=bX-W*0.055, zFeetY=bY+H*0.055;
+    const zFeetX=bX-W*0.05, zFeetY=bY-H*0.005;
     const zX=zFeetX-zW*0.5-zW*0.12;
     c.fillStyle="rgba(0,0,0,0.20)";
     c.beginPath(); c.ellipse(zFeetX,zFeetY,zW*.34,7,0,0,Math.PI*2); c.fill();
