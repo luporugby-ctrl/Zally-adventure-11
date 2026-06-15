@@ -214,27 +214,27 @@ html,body{width:100%;height:100%;background:#111;display:flex;align-items:center
 const SHOTS=[
   {
     tech:"ADVANCED ROLE-PLAYING",icon:"🎭",color:"#e74c3c",wind:"5 m/s",windDx:1,
-    scenario:"Your supplier keeps uploading invoices incorrectly on the dedicated billing tool, causing processing delays across your team. You need to write a clear, helpful email to guide them through the correct steps.",
+    scenario:"You're planning a weekend city trip with three friends and want the AI to suggest an itinerary that actually fits your group — limited budget, lots of walking, plenty of food stops.",
     question:"Which prompt uses ADVANCED ROLE-PLAYING correctly?",
     answers:[
-      {t:"Act as a Zalando Supplier Support Specialist. Write a step-by-step email guiding the supplier through the correct invoice upload process on our billing tool, using simple and friendly language.",ok:true,w:"Precise role + style + constraints = every response is tailored to your operational context."},
-      {t:"Write an email to my supplier about the invoice upload tool.",ok:false,w:"Too generic. No role defined — the AI has no context to shape the right response."},
-      {t:"You are an expert. Help my supplier upload invoices correctly.",ok:false,w:"'Expert' is too vague. No style, format, or operational constraints are set."},
-      {t:"Write a professional email explaining the invoice uploading steps to my supplier.",ok:false,w:"No role assignment. Without a persona, the output will be generic, not tailored to your context."}
+      {t:"Act as a local guide who loves street food. Plan a 2-day walking itinerary for 4 friends on a tight budget, in a friendly tone, with 3 food stops a day and nothing over €15 per attraction.",ok:true,w:"Persona + style + constraints = an answer tailored to your group, not a generic list."},
+      {t:"Plan a weekend trip for me and my friends.",ok:false,w:"Too generic. No role defined — the AI has nothing to shape the right answer."},
+      {t:"You are an expert. Help me plan a great trip.",ok:false,w:"'Expert' is too vague. No style, format or constraints are set."},
+      {t:"Write a nice weekend itinerary for a city break.",ok:false,w:"No persona assigned. Without a role, the output stays generic, not built for you."}
     ],
-    feedback:"ROLE-PLAYING sets the AI's operating stance: defining persona, style and constraints ensures every response aligns to your specific operational context."
+    feedback:"ROLE-PLAYING sets the AI's operating stance: a specific persona, style and constraints make every answer fit your situation, not a generic one."
   },
   {
     tech:"NEGATIVE PROMPTING",icon:"🚫",color:"#e67e22",wind:"8 m/s",windDx:-0.5,
-    scenario:"After your weekly ops meeting, you need to send a quick recap to senior management. They have no time — the key message must land in seconds: no jargon, no fluff, no walls of text.",
+    scenario:"A friend asks you to pick a movie for tonight. You want the AI's choice — but nothing scary, nothing over two hours, and absolutely no spoilers.",
     question:"Which prompt uses NEGATIVE PROMPTING correctly?",
     answers:[
-      {t:"Summarize the meeting notes. DO NOT use internal tool names or acronyms. DO NOT exceed 5 bullet points. DO NOT include technical process details.",ok:true,w:"Explicit bans + quantitative limit = full control over output format and content."},
-      {t:"Make a short and simple summary of these meeting notes.",ok:false,w:"'Short and simple' is subjective. The AI will interpret it however it wants."},
-      {t:"Write a brief summary, avoiding complicated words.",ok:false,w:"No specific constraints — the AI still has too much freedom to add unwanted content."},
-      {t:"Summarize this professionally for management.",ok:false,w:"'Professional' doesn't stop the AI from filling the output with acronyms and jargon."}
+      {t:"Recommend one movie for tonight. DO NOT suggest horror. DO NOT pick anything over 2 hours. DO NOT reveal any plot twist or the ending.",ok:true,w:"Explicit bans + a number = full control over what the AI gives you."},
+      {t:"Recommend a good movie that's not too long.",ok:false,w:"'Not too long' is subjective. The AI will interpret it however it wants."},
+      {t:"Suggest a fun movie, nothing scary please.",ok:false,w:"Vague — no limit on length and nothing stopping spoilers."},
+      {t:"Pick a great movie for a relaxed evening.",ok:false,w:"'Great' doesn't stop the AI from picking horror or dropping spoilers."}
     ],
-    feedback:"NEGATIVE PROMPTING is surgical: explicit DO NOT instructions disable default AI behaviors and keep the output clean and under control."
+    feedback:"NEGATIVE PROMPTING is surgical: explicit DO NOT rules plus a number switch off unwanted defaults and keep the output exactly in bounds."
   },
   {
     tech:"SELF-CORRECTION",icon:"🔄",color:"#3498db",wind:"4 m/s",windDx:0.3,
@@ -250,15 +250,15 @@ const SHOTS=[
   },
   {
     tech:"META-PROMPTING",icon:"🧠",color:"#9b59b6",wind:"3 m/s",windDx:0,
-    scenario:"You want to build a Google Sheets tracker to monitor your supplier's invoicing performance over time, but you don't know how to structure the request — you're not even sure where to start.",
+    scenario:"You want to get in shape but have no idea how to ask the AI for a workout plan that suits you — you're not even sure which details matter.",
     question:"What is the META-PROMPTING master move?",
     answers:[
-      {t:"Act as a Prompt Engineer. Ask me 3 questions about what I want to track and how I work, then write the perfect prompt to build my supplier performance tracker in Google Sheets.",ok:true,w:"You delegate the prompt creation to Gemini itself — the perfect move when you don't know how to ask."},
-      {t:"Explain how I can build a supplier tracker in Google Sheets.",ok:false,w:"You will get a generic tutorial, not an operational tool built for your specific context."},
-      {t:"Write a prompt for a supplier tracking spreadsheet.",ok:false,w:"You will get a generic prompt — not calibrated on your real data and workflow."},
-      {t:"Let's build a tracker together. What data do you need from me?",ok:false,w:"Good start, but you are still guiding the process. META-PROMPTING means delegating the prompt engineering entirely to Gemini."}
+      {t:"Act as a personal trainer. Before writing my plan, ask me 4 questions about my goals, fitness level, equipment and schedule — then build the perfect workout from my answers.",ok:true,w:"You let the AI design the prompt for you: it gathers what it needs, then delivers a plan built around you."},
+      {t:"Give me a good workout plan to get fit.",ok:false,w:"A generic plan, not personalized to your goals or your level."},
+      {t:"Explain how to build a workout routine.",ok:false,w:"You get a tutorial, not your plan — and you still have to do the hard part."},
+      {t:"Write a prompt for a fitness plan.",ok:false,w:"A generic prompt, not calibrated to your real situation."}
     ],
-    feedback:"META-PROMPTING turns Gemini into your personal Prompt Engineer. Instead of searching for the perfect question, you ask Gemini to build it for you."
+    feedback:"META-PROMPTING delegates the hard part: let the AI interview you and design the prompt, so the final answer is built around your real situation."
   }
 ];
 

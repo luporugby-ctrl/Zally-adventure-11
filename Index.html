@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Zally Golf Club - Prompt Master</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;background:#111;display:flex;align-items:center;justify-content:center;font-family:"Press Start 2P",monospace;overflow:hidden;}
+#G{position:relative;width:900px;height:580px;overflow:hidden;background:#000;border:3px solid #1a2a1a;box-shadow:0 0 60px rgba(0,200,80,.1);}
+
+/* INTRO */
+#intro{position:absolute;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,#020810 0%,#040d1e 60%,#000 100%);}
+.i-pre{font-size:6px;color:#3a8aff;letter-spacing:5px;margin-bottom:12px;}
+.i-logo{font-size:30px;color:#f1c40f;text-shadow:3px 3px 0 #7a5e00,0 0 36px rgba(241,196,15,.5);text-align:center;line-height:1.3;margin-bottom:6px;}
+.i-sub{font-size:8px;color:#fff;letter-spacing:3px;margin-bottom:26px;opacity:.7;}
+.i-card{width:700px;background:rgba(4,14,40,.95);border:2px solid #1a3a7a;border-top:2px solid #3a8aff;padding:18px 24px 16px;margin-bottom:22px;}
+.i-card-title{font-size:6.5px;color:#3a8aff;letter-spacing:2px;border-bottom:1px solid rgba(58,138,255,.2);padding-bottom:8px;margin-bottom:14px;}
+.i-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.i-shot{display:flex;gap:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);padding:10px;}
+.i-num{font-size:18px;flex-shrink:0;}
+.i-tech{font-size:6px;margin-bottom:4px;}
+.i-desc{font-size:5.5px;color:#5a7aaa;line-height:2;}
+.i-footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,.07);padding-top:10px;font-size:6px;}
+.i-footer-l{color:#3a5a8a;line-height:2;} .i-footer-l b{color:#aaa;}
+.i-badge{border:1px solid #27ae60;color:#27ae60;padding:4px 12px;font-size:6px;}
+.i-btn{background:transparent;border:2px solid #f1c40f;color:#f1c40f;font-family:"Press Start 2P",monospace;font-size:10px;padding:13px 40px;cursor:pointer;letter-spacing:2px;animation:coinBlink 1s step-end infinite;}
+.i-btn:hover{background:#f1c40f;color:#000;animation:none;}
+@keyframes coinBlink{0%,100%{opacity:1;}50%{opacity:.2;}}
+.i-credit{position:absolute;bottom:10px;font-size:5.5px;color:#1a3a2a;}
+
+/* HUD */
+#hud{position:absolute;top:0;left:0;right:0;height:44px;display:none;justify-content:space-between;align-items:center;padding:0 12px;z-index:30;pointer-events:none;background:linear-gradient(to bottom,rgba(0,0,0,.9) 0%,transparent 100%);}
+.hb{background:rgba(0,0,0,.82);border:1.5px solid rgba(255,255,255,.14);padding:5px 10px;font-size:6.5px;color:#b0d0b0;line-height:2.1;}
+.hb b{color:#fff;} .yw{color:#f1c40f;} .gr{color:#2ecc71;}
+#dots{display:flex;gap:4px;margin-top:3px;}
+.dot{width:9px;height:9px;border:2px solid #444;background:#111;}
+.dot.done{background:#2ecc71;border-color:#2ecc71;}
+.dot.active{background:#f1c40f;border-color:#f1c40f;animation:dp .6s infinite alternate;}
+@keyframes dp{to{opacity:.3;}}
+
+/* SPLIT LAYOUT */
+#split{position:absolute;top:44px;bottom:0;left:0;right:0;display:none;}
+
+/* Left panel slides out to the left when .hidden */
+#left{
+  position:absolute;top:0;bottom:0;left:0;width:336px;
+  background:linear-gradient(160deg,#05101a 0%,#020810 100%);
+  border-right:2px solid #0a2a1a;
+  display:flex;flex-direction:column;
+  transition:transform .5s cubic-bezier(.4,0,.2,1), opacity .4s ease;
+  transform:translateX(0);opacity:1;
+}
+#left.hidden{transform:translateX(-340px);opacity:0;pointer-events:none;}
+#zView{height:190px;position:relative;overflow:hidden;flex-shrink:0;background:linear-gradient(180deg,#3a80c0 0%,#68b8e8 55%,#28b855 55%,#1a7838 100%);}
+#zC{position:absolute;top:0;left:0;width:336px;height:190px;}
+
+#iBar{display:flex;justify-content:space-between;align-items:center;padding:4px 10px;background:#020c1a;border-top:1px solid #0a2540;border-bottom:1px solid #0a2540;flex-shrink:0;}
+.ib{color:#4a7a9a;font-size:6px;} .ib b{color:#f1c40f;}
+#ch{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;padding:10px 12px 8px;scrollbar-width:thin;scrollbar-color:rgba(58,138,255,.45) transparent;}
+#ch::-webkit-scrollbar{width:5px;}
+#ch::-webkit-scrollbar-thumb{background:rgba(58,138,255,.45);border-radius:3px;}
+#ch::-webkit-scrollbar-track{background:transparent;}
+.ch-tag{font-size:5.5px;padding:3px 8px;border:1.5px solid currentColor;display:inline-block;margin-bottom:7px;}
+.ch-scen{font-size:5.5px;color:#4a7a9a;line-height:2;border-left:2px solid #1a3a6a;padding-left:8px;margin-bottom:6px;}
+.ch-q{font-size:6.5px;color:#cce;margin-bottom:7px;}
+.ch-ans{display:flex;flex-direction:column;gap:5px;margin-bottom:6px;}
+.ans{background:rgba(2,8,24,.9);border:1.5px solid #1a3050;color:#8aaac0;font-family:"Press Start 2P",monospace;font-size:5px;padding:6px 8px;cursor:pointer;text-align:left;line-height:2;transition:background .1s,border-color .1s,color .1s;}
+.ans:hover{background:rgba(10,40,100,.8);border-color:#4af;color:#fff;}
+.ans.correct{background:rgba(5,30,12,.9);border-color:#27ae60;color:#27ae60;pointer-events:none;}
+.ans.wrong{background:rgba(35,5,5,.9);border-color:#e74c3c;color:#e74c3c;pointer-events:none;}
+.ans.dim{pointer-events:none;opacity:.35;}
+#fb{display:none;font-size:5.5px;line-height:1.9;color:#80c898;border-left:2px solid #27ae60;padding-left:8px;margin-bottom:5px;}
+#fb.bad{color:#c88080;border-color:#e74c3c;}
+#shootBtn{display:none;position:sticky;bottom:-2px;flex-shrink:0;background:#07182e;border:1.5px solid #27ae60;color:#27ae60;font-family:"Press Start 2P",monospace;font-size:6.5px;padding:7px;cursor:pointer;width:100%;box-shadow:0 -8px 10px -4px rgba(7,24,46,.95);}
+#shootBtn:hover{background:#27ae60;color:#000;}
+
+/* Right panel expands to full width when left is hidden */
+#right{
+  position:absolute;top:0;bottom:0;left:336px;right:0;overflow:hidden;
+  transition:left .5s cubic-bezier(.4,0,.2,1);
+}
+#right.full{left:0;}
+#fC{position:absolute;top:0;left:0;}
+
+/* POWER UI */
+#powerUI{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(175deg,#020c1e,#040f28);border-top:2px solid #1a3a6a;padding:12px 20px 14px;display:none;flex-direction:column;align-items:center;gap:8px;z-index:40;}
+.pw-inst{font-size:6px;color:#f1c40f;animation:blk .7s step-end infinite;}
+@keyframes blk{50%{opacity:0;}}
+#pwTrack{width:520px;height:26px;background:#040f1e;border:2px solid #1a3050;position:relative;overflow:hidden;}
+#pwTrack::after{content:"";position:absolute;top:0;left:35%;width:30%;height:100%;background:rgba(39,174,96,.1);border-left:1px dashed rgba(39,174,96,.5);border-right:1px dashed rgba(39,174,96,.5);pointer-events:none;z-index:2;}
+#pwFill{height:100%;width:0%;background:linear-gradient(to right,#27ae60 0%,#f1c40f 52%,#e74c3c 100%);position:relative;z-index:1;}
+.pw-lbs{width:520px;display:flex;justify-content:space-between;font-size:5.5px;color:#243a5a;margin-top:-5px;}
+#swingBtn{width:190px;height:34px;background:#c0392b;border:2.5px solid #fff;color:#fff;font-family:"Press Start 2P",monospace;font-size:9px;cursor:pointer;animation:swPulse .8s infinite alternate;}
+@keyframes swPulse{to{box-shadow:0 0 20px #e74c3c;}}
+#swingBtn:hover{background:#e74c3c;}
+
+/* BADGE */
+#badge{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%) scale(0);font-size:17px;color:#f1c40f;text-shadow:3px 3px 0 #000,0 0 18px #f1c40f;text-align:center;line-height:1.7;z-index:60;pointer-events:none;transition:transform .3s cubic-bezier(.34,1.56,.64,1);}
+#badge.show{transform:translate(-50%,-50%) scale(1);}
+
+/* TRANSITION */
+#transition{position:absolute;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:70;opacity:0;pointer-events:none;transition:opacity .4s;}
+#transition.show{opacity:1;pointer-events:all;}
+.tr1{font-size:7px;color:#2a4a6a;letter-spacing:3px;}
+.tr2{font-size:18px;color:#f1c40f;text-shadow:0 0 22px #f1c40f;}
+.tr3{font-size:7px;color:#27ae60;}
+
+/* WIN */
+#win{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 25%,#061428 0%,#000 70%);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:75;gap:14px;}
+#win.show{display:flex;}
+.wtrophy{font-size:56px;animation:tpop .6s cubic-bezier(.34,1.56,.64,1);}
+@keyframes tpop{from{transform:scale(0);}to{transform:scale(1);}}
+.wtitle{font-size:13px;color:#f1c40f;text-shadow:0 0 28px #f1c40f;text-align:center;line-height:2;}
+.wsub{font-size:6px;color:#7aaa8a;text-align:center;line-height:2.4;max-width:560px;white-space:pre-line;}
+#restartBtn{background:transparent;border:2px solid #f1c40f;color:#f1c40f;font-family:"Press Start 2P",monospace;font-size:8px;padding:11px 28px;cursor:pointer;margin-top:6px;}
+#restartBtn:hover{background:#f1c40f;color:#000;}
+@keyframes starFly{0%{transform:scale(0) rotate(0);opacity:1;}100%{transform:scale(1.6) rotate(480deg) translateY(-70px);opacity:0;}}
+
+/* ZALLY KART */
+#kartScene{
+  position:absolute;
+  bottom:30px;
+  left:-220px;
+  z-index:72;
+  pointer-events:none;
+  display:none;
+  filter:drop-shadow(2px 4px 8px rgba(0,0,0,0.55));
+}
+/* Real pixel-art kart sprite (transparent PNG). Flipped so it faces the travel direction. */
+#kartImg{
+  display:none;
+  height:150px;width:auto;
+  image-rendering:pixelated;
+  transform:scaleX(-1);
+}
+</style>
+</head>
+<body>
+<div id="G">
+
+<div id="intro">
+  <div class="i-pre">ZALANDO AI ENABLEMENT - GEMINI CLINIC 03</div>
+  <div class="i-logo">ZALLY GOLF CLUB</div>
+  <div class="i-sub">PROMPT MASTER EDITION</div>
+  <div class="i-card">
+    <div class="i-card-title">CADDIE BRIEFING - HOLE 18 - PAR 4</div>
+    <div class="i-grid">
+      <div class="i-shot"><div class="i-num">🎭</div><div><div class="i-tech" style="color:#e74c3c;">SHOT 1 - ADVANCED ROLE-PLAYING</div><div class="i-desc">Set your operating stance with precise role, style and constraints.</div></div></div>
+      <div class="i-shot"><div class="i-num">🚫</div><div><div class="i-tech" style="color:#e67e22;">SHOT 2 - NEGATIVE PROMPTING</div><div class="i-desc">Explicitly ban unwanted behaviors from the AI output.</div></div></div>
+      <div class="i-shot"><div class="i-num">🔄</div><div><div class="i-tech" style="color:#3498db;">SHOT 3 - SELF-CORRECTION</div><div class="i-desc">Make the AI critique its own output before regenerating it.</div></div></div>
+      <div class="i-shot"><div class="i-num">🧠</div><div><div class="i-tech" style="color:#9b59b6;">SHOT 4 - META-PROMPTING</div><div class="i-desc">Delegate to Gemini the task of building the ideal prompt for you.</div></div></div>
+    </div>
+    <div class="i-footer">
+      <div class="i-footer-l">HOLE <b>18</b> &nbsp;-&nbsp; PAR <b>4</b> &nbsp;-&nbsp; WIND <b>VARIABLE</b></div>
+      <div class="i-badge">DIFFICULTY: PRO 3/3</div>
+    </div>
+  </div>
+  <button class="i-btn" onclick="startGame()">INSERT COIN</button>
+  <div class="i-credit">ARCADE DIVISION 198X - ZALANDO AI ENABLEMENT - GEMINI CLINICS</div>
+</div>
+
+<div id="hud">
+  <div class="hb"><b>ZALLY GOLF CLUB</b><br>HOLE 18 - PAR 4<div id="dots"><div class="dot active" id="d0"></div><div class="dot" id="d1"></div><div class="dot" id="d2"></div><div class="dot" id="d3"></div></div></div>
+  <div class="hb" style="text-align:center;">SHOT <span class="yw" id="hShot">1</span>/4<br><span class="yw" id="hTech" style="font-size:5.5px;">-</span></div>
+  <div class="hb" style="text-align:right;">WIND <span class="yw" id="hWind">-</span><br>SCORE <span class="gr" id="hScore">EVEN</span></div>
+</div>
+
+<div id="split">
+  <div id="left">
+    <div id="zView"><canvas id="zC" width="336" height="190"></canvas></div>
+    <div id="iBar">
+      <div class="ib">WIND <b id="ibWind">-</b></div>
+      <div class="ib">SHOT <b id="ibShot">1/4</b></div>
+      <div class="ib">SCORE <b id="ibScore" style="color:#2ecc71;">EVEN</b></div>
+    </div>
+    <div id="ch">
+      <span class="ch-tag" id="chTag"></span>
+      <div class="ch-scen" id="chScen"></div>
+      <div class="ch-q" id="chQ"></div>
+      <div class="ch-ans" id="chAns"></div>
+      <div id="fb"></div>
+      <button id="shootBtn" onclick="armShot()">SWING!</button>
+    </div>
+  </div>
+  <div id="right"><canvas id="fC" width="562" height="536"></canvas></div>
+</div>
+
+<div id="powerUI">
+  <div class="pw-inst">PRESS SPACE or SWING to stop the power meter!</div>
+  <div id="pwTrack"><div id="pwFill"></div></div>
+  <div class="pw-lbs"><span>SHORT</span><span>SWEET ZONE</span><span>LONG</span></div>
+  <button id="swingBtn" onclick="swing()">SWING!</button>
+</div>
+
+<div id="badge"></div>
+<div id="transition">
+  <div class="tr1">NEXT SHOT</div>
+  <div class="tr2" id="trTech"></div>
+  <div class="tr3" id="trSub"></div>
+</div>
+<div id="win">
+  <div class="wtrophy">🏆</div>
+  <div class="wtitle">HOLE COMPLETE!<br>PROMPT MASTER!</div>
+  <div class="wsub" id="wSub"></div>
+  <button id="restartBtn" onclick="restart()">PLAY AGAIN</button>
+</div>
+<div id="kartScene"><img id="kartImg" src="<?= kartImg ?>" alt="Zally Kart"/><canvas id="kartC" width="220" height="75"></canvas></div>
+
+</div>
+<script>
+/* ═══════ DATA ═══════ */
+const SHOTS=[
+  {
+    tech:"ADVANCED ROLE-PLAYING",icon:"🎭",color:"#e74c3c",wind:"5 m/s",windDx:1,
+    scenario:"You're planning a weekend city trip with three friends and want the AI to suggest an itinerary that actually fits your group — limited budget, lots of walking, plenty of food stops.",
+    question:"Which prompt uses ADVANCED ROLE-PLAYING correctly?",
+    answers:[
+      {t:"Act as a local guide who loves street food. Plan a 2-day walking itinerary for 4 friends on a tight budget, in a friendly tone, with 3 food stops a day and nothing over €15 per attraction.",ok:true,w:"Persona + style + constraints = an answer tailored to your group, not a generic list."},
+      {t:"Plan a weekend trip for me and my friends.",ok:false,w:"Too generic. No role defined — the AI has nothing to shape the right answer."},
+      {t:"You are an expert. Help me plan a great trip.",ok:false,w:"'Expert' is too vague. No style, format or constraints are set."},
+      {t:"Write a nice weekend itinerary for a city break.",ok:false,w:"No persona assigned. Without a role, the output stays generic, not built for you."}
+    ],
+    feedback:"ROLE-PLAYING sets the AI's operating stance: a specific persona, style and constraints make every answer fit your situation, not a generic one."
+  },
+  {
+    tech:"NEGATIVE PROMPTING",icon:"🚫",color:"#e67e22",wind:"8 m/s",windDx:-0.5,
+    scenario:"A friend asks you to pick a movie for tonight. You want the AI's choice — but nothing scary, nothing over two hours, and absolutely no spoilers.",
+    question:"Which prompt uses NEGATIVE PROMPTING correctly?",
+    answers:[
+      {t:"Recommend one movie for tonight. DO NOT suggest horror. DO NOT pick anything over 2 hours. DO NOT reveal any plot twist or the ending.",ok:true,w:"Explicit bans + a number = full control over what the AI gives you."},
+      {t:"Recommend a good movie that's not too long.",ok:false,w:"'Not too long' is subjective. The AI will interpret it however it wants."},
+      {t:"Suggest a fun movie, nothing scary please.",ok:false,w:"Vague — no limit on length and nothing stopping spoilers."},
+      {t:"Pick a great movie for a relaxed evening.",ok:false,w:"'Great' doesn't stop the AI from picking horror or dropping spoilers."}
+    ],
+    feedback:"NEGATIVE PROMPTING is surgical: explicit DO NOT rules plus a number switch off unwanted defaults and keep the output exactly in bounds."
+  },
+  {
+    tech:"SELF-CORRECTION",icon:"🔄",color:"#3498db",wind:"4 m/s",windDx:0.3,
+    scenario:"Gemini just drafted a supplier handover document in Google Docs to transfer management to another department. Re-reading it, you notice it feels generic and misses the practical details your colleagues will need from day one.",
+    question:"How do you use SELF-CORRECTION to make the AI improve its own output?",
+    answers:[
+      {t:"Re-read the handover doc you just wrote. Identify 3 sections too generic for someone taking over tomorrow — missing contacts, open issues, key deadlines — then rewrite each one with specific details.",ok:true,w:"You force the AI to review its own work, find specific gaps, and fix them. That is true self-correction."},
+      {t:"This document is not good. Redo it from scratch.",ok:false,w:"No direction given. The AI will restart without understanding what was actually wrong."},
+      {t:"Make it more detailed and practical.",ok:false,w:"Too vague. The AI has no criteria to evaluate what is missing or how to fix it."},
+      {t:"Rewrite it in a better way for the new team.",ok:false,w:"'Better' is not actionable. It skips the self-reflection step that makes the technique effective."}
+    ],
+    feedback:"SELF-CORRECTION turns the AI into its own editor — forcing it to find its own gaps before moving forward."
+  },
+  {
+    tech:"META-PROMPTING",icon:"🧠",color:"#9b59b6",wind:"3 m/s",windDx:0,
+    scenario:"You want to get in shape but have no idea how to ask the AI for a workout plan that suits you — you're not even sure which details matter.",
+    question:"What is the META-PROMPTING master move?",
+    answers:[
+      {t:"Act as a personal trainer. Before writing my plan, ask me 4 questions about my goals, fitness level, equipment and schedule — then build the perfect workout from my answers.",ok:true,w:"You let the AI design the prompt for you: it gathers what it needs, then delivers a plan built around you."},
+      {t:"Give me a good workout plan to get fit.",ok:false,w:"A generic plan, not personalized to your goals or your level."},
+      {t:"Explain how to build a workout routine.",ok:false,w:"You get a tutorial, not your plan — and you still have to do the hard part."},
+      {t:"Write a prompt for a fitness plan.",ok:false,w:"A generic prompt, not calibrated to your real situation."}
+    ],
+    feedback:"META-PROMPTING delegates the hard part: let the AI interview you and design the prompt, so the final answer is built around your real situation."
+  }
+];
+
+/* ═══════ SPRITES ═══════ */
+const SPR_IDLE=new Image(), SPR_SWING=new Image();
+SPR_IDLE.src='<?= idleImg ?>';
+SPR_SWING.src='<?= swingImg ?>';
+
+/* ═══════ STATE ═══════ */
+const FW=562,FH=536,ZW=336,ZH=190;
+// fieldW tracks actual rendered width of field (changes when panel slides)
+let fieldW=FW;
+
+/* Per-shot camera / view progression.
+   hz=horizon line, ballXf/ballYf=ball position fractions,
+   tee=show tee box, zallyHf=Zally sprite height fraction in field. */
+const VIEWS=[
+  {hz:FH*0.42, ballXf:.50, ballYf:.87, tee:true,  zallyHf:.22},
+  {hz:FH*0.40, ballXf:.50, ballYf:.72, tee:false, zallyHf:.18},
+  {hz:FH*0.37, ballXf:.50, ballYf:.62, tee:false, zallyHf:.14},
+  {hz:FH*0.25, ballXf:.40, ballYf:.70, tee:false, zallyHf:.20},
+];
+const EXPAND_MS=500;                 // duration of canvas-expand animation (matches CSS panel slide)
+let expandStart=0;                   // perf.now() when panel slide begins; animates fieldW 562->900
+let currentHz=VIEWS[0].hz, targetHz=VIEWS[0].hz;  // smoothly interpolated horizon
+let camOffX=0, camOffXTarget=0;      // parallax camera offset driven by ball flight
+let shotIdx=0,totalScore=0,shotResults=[];
+let answered=false,correctChosen=false,phase="intro";
+let power=0,pwDir=1,pwRunning=false,pwRaf=null;
+let bx=0,by=0,bvx=0,bvy=0,ballLanded=false,trail=[];
+// Parametric ball flight (arc for swings, low roll for the shot-4 putt)
+let flightP=0,flightDur=74,arcH=120;
+let p0x=0,p0y=0,tgX=0,tgY=0;          // launch point + landing target
+let ballShadowY=0;                    // ground-plane y for the ball shadow
+let rolling=false,rollP=0,rollDur=18,rollFromX=0,rollFromY=0,rollToX=0,rollToY=0;
+let shotDist=0;                       // landing distance to hole → drives the score
+let cupFxT=0,puttMade=false;          // drop-in flash timer + whether the putt was holed
+let zallyState="idle";
+let cloudT=0;
+let fCtx,zCtx,fCanvas;
+
+/* ═══════ BOOT ═══════ */
+document.addEventListener("DOMContentLoaded",()=>{
+  fCanvas=document.getElementById("fC");
+  fCtx=fCanvas.getContext("2d");
+  zCtx=document.getElementById("zC").getContext("2d");
+  drawField(SHOTS[0]);
+  drawZally(SHOTS[0]);
+  document.addEventListener("keydown",e=>{
+    if(e.code==="Space"){e.preventDefault();if(phase==="power")swing();}
+  });
+});
+
+/* ═══════ START ═══════ */
+function startGame(){
+  document.getElementById("intro").style.display="none";
+  document.getElementById("hud").style.display="flex";
+  document.getElementById("split").style.display="block";
+  loadShot(0);
+  requestAnimationFrame(loop);
+}
+
+/* ═══════ LOAD SHOT ═══════ */
+function loadShot(idx){
+  shotIdx=idx;answered=false;correctChosen=false;
+  ballLanded=false;trail=[];zallyState="idle";phase="challenge";cupFxT=0;puttMade=false;
+  // Restore split layout
+  document.getElementById("left").classList.remove("hidden");
+  document.getElementById("right").classList.remove("full");
+  fieldW=FW;
+  expandStart=0;
+  targetHz=VIEWS[idx].hz;       // currentHz eases toward this every frame (zoom-in for shot 4)
+  camOffX=0;camOffXTarget=0;
+  if(fCanvas&&fCanvas.width!==FW)fCanvas.width=FW;
+  const s=SHOTS[idx];
+  document.getElementById("hShot").textContent=idx+1;
+  document.getElementById("hTech").textContent=s.tech;
+  document.getElementById("hWind").textContent=s.wind;
+  updateScore();
+  for(let i=0;i<4;i++) document.getElementById("d"+i).className="dot"+(i<idx?" done":i===idx?" active":"");
+  document.getElementById("ibWind").textContent=s.wind;
+  document.getElementById("ibShot").textContent=(idx+1)+"/4";
+  const tag=document.getElementById("chTag");
+  tag.textContent=s.icon+" "+s.tech;tag.style.color=s.color;tag.style.borderColor=s.color;
+  applyShotLabels();
+  document.getElementById("chScen").textContent=s.scenario;
+  document.getElementById("chQ").textContent=s.question;
+  const grid=document.getElementById("chAns");grid.innerHTML="";
+  [...s.answers].sort(()=>Math.random()-.5).forEach(a=>{
+    const b=document.createElement("button");b.className="ans";b.textContent=a.t;
+    b.onclick=()=>pick(a);grid.appendChild(b);
+  });
+  document.getElementById("fb").style.display="none";
+  document.getElementById("shootBtn").style.display="none";
+  document.getElementById("powerUI").style.display="none";
+  document.getElementById("badge").className="";
+  document.getElementById("transition").classList.remove("show");
+}
+
+/* ═══════ ANSWER ═══════ */
+function pick(chosen){
+  if(answered)return;
+  answered=true;correctChosen=chosen.ok;
+  document.querySelectorAll(".ans").forEach(btn=>{
+    const m=SHOTS[shotIdx].answers.find(a=>a.t===btn.textContent);
+    if(!m)return;
+    btn.setAttribute("disabled",true);
+    if(m.ok)btn.classList.add("correct");
+    else if(m===chosen)btn.classList.add("wrong");
+    else btn.classList.add("dim");
+  });
+  const fb=document.getElementById("fb");
+  fb.className=correctChosen?"":"bad";fb.style.display="block";
+  fb.textContent=(correctChosen?"CORRECT! ":"WRONG! ")+chosen.w;
+  document.getElementById("shootBtn").style.display="block";
+  const verb=shotIdx===3?"PUTT":"SWING";
+  document.getElementById("shootBtn").textContent=correctChosen?("PERFECT - "+verb+"!"):(verb+" ANYWAY");
+}
+
+/* Putt vs full-swing wording on the power meter & action buttons */
+function applyShotLabels(){
+  const putt=shotIdx===3, verb=putt?"PUTT":"SWING";
+  document.querySelector(".pw-inst").textContent=
+    "PRESS SPACE or "+verb+" to "+(putt?"set your putt strength!":"stop the power meter!");
+  const lbs=document.querySelectorAll(".pw-lbs span");
+  if(lbs.length===3){lbs[0].textContent="SHORT";lbs[1].textContent=putt?"PERFECT":"SWEET ZONE";lbs[2].textContent="LONG";}
+  document.getElementById("swingBtn").textContent=verb+"!";
+}
+
+/* ═══════ POWER ═══════ */
+function armShot(){
+  // Slide left panel out → field expands full width (fieldW animates 562→900 in loop)
+  document.getElementById("left").classList.add("hidden");
+  document.getElementById("right").classList.add("full");
+  expandStart=performance.now();
+  // Show power UI after transition completes
+  setTimeout(()=>{
+    document.getElementById("powerUI").style.display="flex";
+    phase="power";power=0;pwDir=1;pwRunning=true;movePower();
+  },520);
+}
+function movePower(){
+  if(!pwRunning)return;
+  power+=pwDir*2;
+  if(power>=100){power=100;pwDir=-1;}if(power<=0){power=0;pwDir=1;}
+  document.getElementById("pwFill").style.width=power+"%";
+  pwRaf=requestAnimationFrame(movePower);
+}
+
+/* ═══════ SWING ═══════ */
+function swing(){
+  if(phase!=="power")return;
+  pwRunning=false;cancelAnimationFrame(pwRaf);
+  document.getElementById("powerUI").style.display="none";
+  phase="flight";launchBall(power);swingAnim();playSwingSound();
+}
+// Screen position of the hole/pin for the current shot (landing target reference)
+function holePos(){
+  const W=fieldW,H=FH;
+  if(shotIdx===3)return {x:W*0.5, y:H*0.66-H*0.16*0.1};     // shot-4 close-up cup (matches drawFieldShot4)
+  const hz=currentHz, gY=hz+(H-hz)*0.18;                    // matches drawFieldNormal green
+  return {x:W*0.5, y:gY};
+}
+function launchBall(pw){
+  ballLanded=false;rolling=false;trail=[];flightP=0;
+  const s=SHOTS[shotIdx], v=VIEWS[shotIdx], hole=holePos();
+  p0x=fieldW*v.ballXf; p0y=FH*v.ballYf;       // launch from this shot's ball spot
+  bx=p0x; by=p0y; ballShadowY=p0y;
+  const err=(pw-50)/50;                        // power-meter timing error: -1..+1
+  const windSpd=parseInt(s.wind)||0;
+  if(shotIdx===3){
+    // PUTT: flat roll across the green toward the cup
+    flightDur=46; arcH=7;
+    tgX=hole.x + err*40;                        // mishit pushes the line off the cup
+    tgY=hole.y - err*22;
+  }else{
+    // Full swing: high parabola from the fairway to the green
+    flightDur=74; arcH=120+pw*0.9;             // more power → higher arc
+    tgX=hole.x + s.windDx*windSpd*3.0;          // wind drifts the ball sideways
+    tgY=hole.y - err*95;                        // long on high power, short on low — timing is decisive
+  }
+  tgY=Math.max(currentHz+10, Math.min(FH*0.9, tgY));
+}
+function updateBall(){
+  if(rolling)return updateRoll();
+  flightP+=1/flightDur;
+  if(flightP>=1){
+    flightP=1; bx=tgX; by=tgY; ballShadowY=tgY;
+    trail.push({x:bx,y:by}); if(trail.length>32)trail.shift();
+    ballLanded=true; playLandSound(); startRollOrLand(); return;
+  }
+  bx=p0x+(tgX-p0x)*flightP;
+  ballShadowY=p0y+(tgY-p0y)*flightP;           // shadow tracks the ground-plane path
+  by=ballShadowY-Math.sin(Math.PI*flightP)*arcH;
+  trail.push({x:bx,y:by}); if(trail.length>32)trail.shift();
+}
+// On landing: aces drop into the cup, near-misses settle toward the pin
+function startRollOrLand(){
+  const hole=holePos();
+  shotDist=Math.hypot(bx-hole.x,by-hole.y);
+  let frac=0; puttMade=false;
+  if(correctChosen && shotDist<FH*0.035){frac=1; puttMade=true;}  // true make → into the hole
+  else if(shotDist<FH*0.12) frac=0.4;                 // settle naturally toward the pin
+  if(frac>0){
+    rolling=true; rollP=0; rollDur=Math.round(14+frac*12);
+    rollFromX=bx; rollFromY=by;
+    rollToX=bx+(hole.x-bx)*frac; rollToY=by+(hole.y-by)*frac;
+  }else{
+    phase="result"; setTimeout(evalShot,650);
+  }
+}
+function updateRoll(){
+  rollP+=1/rollDur;
+  const e=rollP<1?rollP*(2-rollP):1;                 // ease-out
+  bx=rollFromX+(rollToX-rollFromX)*e;
+  by=rollFromY+(rollToY-rollFromY)*e; ballShadowY=by;
+  trail.push({x:bx,y:by}); if(trail.length>12)trail.shift();
+  if(rollP>=1){ rolling=false; phase="result"; if(puttMade)cupFxT=performance.now(); setTimeout(evalShot,450); }
+}
+
+/* ═══════ EVAL ═══════ */
+function evalShot(){
+  let label,delta;
+  if(!correctChosen){label="BOGEY +1";delta=1;}
+  else if(shotDist<FH*0.035){label="HOLE IN ONE! ⭐⭐";delta=-2;}
+  else if(shotDist<FH*0.075){label="EAGLE -1 🦅";delta=-1;}
+  else if(shotDist<FH*0.14){label="BIRDIE ±0 🐦";delta=0;}
+  else{label="PAR ±0";delta=0;}
+  totalScore+=delta;
+  shotResults.push({shot:shotIdx+1,tech:SHOTS[shotIdx].tech,label,delta});
+  updateScore();
+  const badge=document.getElementById("badge");
+  badge.textContent=label;badge.className="show";
+  playResultSound(delta);spawnStars(delta<=-1?5:2);
+  setTimeout(()=>{
+    badge.className="";
+    if(shotIdx>=SHOTS.length-1)sinkFinal();
+    else nextShot();
+  },2600);
+}
+function sinkFinal(){
+  phase="sinking";
+  setTimeout(()=>{phase="win";playHoleInSound();spawnStars(10);setTimeout(showWin,1100);},900);
+}
+function nextShot(){
+  phase="transition";
+  const next=SHOTS[shotIdx+1];
+  document.getElementById("trTech").textContent=next.icon+" "+next.tech;
+  document.getElementById("trTech").style.color=next.color;
+  document.getElementById("trSub").textContent="SHOT "+(shotIdx+2)+" / 4";
+  document.getElementById("transition").classList.add("show");
+  startKartAnim();
+  setTimeout(()=>{
+    document.getElementById("transition").classList.remove("show");
+    stopKartAnim();
+    loadShot(shotIdx+1);
+  },3500);   // matches the slower kart so it fully crosses before the wipe ends
+}
+function showWin(){
+  const sc=totalScore===0?"EVEN":totalScore<0?"-"+Math.abs(totalScore):"+"+totalScore;
+  const lines=shotResults.map(r=>"SHOT "+r.shot+"  "+r.tech+"\n-> "+r.label).join("\n\n");
+  document.getElementById("wSub").textContent="FINAL SCORE: "+sc+"\n\n"+lines+"\n\nYou have mastered 4 advanced Prompt Engineering techniques!\nStart applying them in your Gemini Workspace today!";
+  document.getElementById("win").classList.add("show");
+  playVictorySound();
+  if(typeof google!=="undefined"&&google.script&&google.script.run)google.script.run.sendCompletionEmail();
+}
+function restart(){
+  totalScore=0;shotResults=[];
+  stopKartAnim();
+  document.getElementById("win").classList.remove("show");
+  loadShot(0);
+}
+function updateScore(){
+  const el=document.getElementById("hScore");
+  const ib=document.getElementById("ibScore");
+  let txt,col;
+  if(totalScore===0){txt="EVEN";col="#2ecc71";}
+  else if(totalScore<0){txt="-"+Math.abs(totalScore);col="#f1c40f";}
+  else{txt="+"+totalScore;col="#e74c3c";}
+  el.textContent=txt;el.style.color=col;ib.textContent=txt;ib.style.color=col;
+}
+function swingAnim(){
+  zallyState="backswing";
+  setTimeout(()=>zallyState="swing",130);
+  setTimeout(()=>zallyState="follow",310);
+  setTimeout(()=>zallyState="idle",1000);
+}
+
+/* ═══════ LOOP ═══════ */
+function loop(){
+  cloudT+=0.28;
+
+  // ── 1. Canvas expand: fieldW animates 562→900 synced with the panel slide ──
+  if(expandStart){
+    const t=Math.min(1,(performance.now()-expandStart)/EXPAND_MS);
+    fieldW=FW+(900-FW)*ease42(t);   // cubic-bezier(.4,0,.2,1) — matches CSS curve
+    if(t>=1){fieldW=900;expandStart=0;}
+  }
+  // Resize the backing canvas to the current field width (VP stays at fieldW/2)
+  const cw=Math.round(fieldW);
+  if(fCanvas&&fCanvas.width!==cw)fCanvas.width=cw;
+
+  // ── Smooth camera: horizon eases toward target, parallax offset follows ball ──
+  currentHz+=(targetHz-currentHz)*0.04;
+  camOffXTarget=(phase==="flight"||phase==="result"||phase==="sinking")
+    ? -(bx-fieldW/2)*0.14 : 0;
+  camOffX+=(camOffXTarget-camOffX)*0.08;
+
+  drawField(SHOTS[shotIdx]||SHOTS[0]);
+  drawZally(SHOTS[shotIdx]||SHOTS[0]);
+  if(phase==="flight")updateBall();
+  if(phase==="sinking"){
+    const hole=holePos();
+    bx+=(hole.x-bx)*0.12;by+=(hole.y-by)*0.12;ballShadowY=by;
+    trail.push({x:bx,y:by});if(trail.length>10)trail.shift();
+  }
+  requestAnimationFrame(loop);
+}
+
+/* cubic-bezier(.4,0,.2,1) easing — same curve as the CSS panel transition */
+function ease42(t){
+  const cx=3*0.4, bX=3*(0.2-0.4)-cx, aX=1-cx-bX;
+  const cy=0,     bY=3*(1.0-0.0)-cy, aY=1-cy-bY;
+  let x=t;
+  for(let i=0;i<5;i++){
+    const f=((aX*x+bX)*x+cx)*x-t, d=(3*aX*x+2*bX)*x+cx;
+    if(Math.abs(d)<1e-6)break;
+    x-=f/d;
+  }
+  return ((aY*x+bY)*x+cy)*x;
+}
+
+/* ═══════ ZALLY KART ═══════ */
+// Real pixel-art sprite (transparent PNG in the repo). Falls back to the
+// hand-drawn vector kart if the PNG is missing so the game always works.
+const SPR_KART=new Image();
+let kartImgOK=false;
+SPR_KART.onload=()=>{kartImgOK=SPR_KART.naturalWidth>0;};
+SPR_KART.src="<?= kartImg ?>";
+let kartX=-220,kartAnim=false,kartT0=0,kartRAF=null;
+function startKartAnim(){
+  if(kartAnim)return;
+  kartX=-220;kartT0=performance.now();kartAnim=true;
+  const el=document.getElementById("kartScene");
+  el.style.display="block";el.style.left=kartX+"px";
+  animKart(performance.now());
+}
+function stopKartAnim(){
+  kartAnim=false;
+  if(kartRAF){cancelAnimationFrame(kartRAF);kartRAF=null;}
+  const el=document.getElementById("kartScene");
+  if(el)el.style.display="none";
+}
+function animKart(ts){
+  if(!kartAnim)return;
+  kartX=-220+(ts-kartT0)*0.34;   // slower, more relaxed crossing
+  const el=document.getElementById("kartScene");
+  el.style.left=kartX+"px";
+  const img=document.getElementById("kartImg"), cnv=document.getElementById("kartC");
+  if(kartImgOK){            // use the real PNG sprite
+    img.style.display="block"; cnv.style.display="none";
+  }else{                    // fallback: hand-drawn vector kart
+    img.style.display="none"; cnv.style.display="block";
+    drawKartSprite(cnv.getContext("2d"),ts);
+  }
+  if(kartX<940)kartRAF=requestAnimationFrame(animKart);
+  else{kartAnim=false;el.style.display="none";}
+}
+function drawKartSprite(c,ts){
+  const pt=ts*0.012;
+  c.clearRect(0,0,220,75);
+  // Speed lines
+  c.strokeStyle="rgba(255,255,80,0.55)";c.lineWidth=2;
+  [[4,46,25],[3,40,16],[4,53,18],[5,58,12]].forEach(([x,y,l])=>{
+    c.beginPath();c.moveTo(x,y);c.lineTo(x+l,y);c.stroke();
+  });
+  // Exhaust puffs
+  [[23,44,7,0.40],[11,42,10,0.23],[1,40,13,0.11]].forEach(([x,y,r,a],i)=>{
+    c.fillStyle=`rgba(200,200,200,${a})`;
+    c.beginPath();c.arc(x,y+Math.sin(pt+i*1.8)*2,r,0,Math.PI*2);c.fill();
+  });
+  // Shadow
+  c.fillStyle="rgba(0,0,0,0.20)";
+  c.beginPath();c.ellipse(113,71,54,5,0,0,Math.PI*2);c.fill();
+  // Rear wheel
+  [[52,60,13,"#111"],[52,60,9,"#383838"],[52,60,4.5,"#888"]].forEach(([x,y,r,f])=>{
+    c.fillStyle=f;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();
+  });
+  c.strokeStyle="#555";c.lineWidth=1.5;
+  for(let a=0;a<Math.PI*2;a+=Math.PI/3){
+    const cos=Math.cos(a+pt),sin=Math.sin(a+pt);
+    c.beginPath();c.moveTo(52+cos*2,60+sin*2);c.lineTo(52+cos*8.5,60+sin*8.5);c.stroke();
+  }
+  // Front wheel
+  [[163,61,11,"#111"],[163,61,7,"#383838"],[163,61,3.5,"#888"]].forEach(([x,y,r,f])=>{
+    c.fillStyle=f;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();
+  });
+  c.strokeStyle="#555";c.lineWidth=1.5;
+  for(let a=0;a<Math.PI*2;a+=Math.PI/3){
+    const cos=Math.cos(a+pt),sin=Math.sin(a+pt);
+    c.beginPath();c.moveTo(163+cos*1.5,61+sin*1.5);c.lineTo(163+cos*6.5,61+sin*6.5);c.stroke();
+  }
+  // Rear wing
+  c.fillStyle="#f1c40f";
+  c.beginPath();c.moveTo(36,43);c.lineTo(27,26);c.lineTo(42,30);c.lineTo(42,43);c.fill();
+  c.strokeStyle="#c9980a";c.lineWidth=1;
+  c.beginPath();c.moveTo(27,26);c.lineTo(42,30);c.stroke();
+  // Kart body
+  c.fillStyle="#FF6B35";
+  c.beginPath();c.moveTo(40,59);c.lineTo(168,59);c.lineTo(174,41);c.lineTo(36,39);c.closePath();c.fill();
+  c.fillStyle="#CC4820";
+  c.beginPath();c.moveTo(40,51);c.lineTo(168,51);c.lineTo(168,59);c.lineTo(40,59);c.fill();
+  c.fillStyle="rgba(255,255,255,0.14)";
+  c.beginPath();c.moveTo(36,39);c.lineTo(174,41);c.lineTo(174,44);c.lineTo(36,42);c.fill();
+  // Front nose
+  c.fillStyle="#CC4820";
+  c.beginPath();c.moveTo(168,41);c.lineTo(188,46);c.lineTo(180,59);c.lineTo(168,59);c.fill();
+  // Front spoiler
+  c.fillStyle="#f1c40f";
+  c.beginPath();c.moveTo(170,54);c.lineTo(194,51);c.lineTo(193,58);c.lineTo(170,59);c.fill();
+  // Cockpit
+  c.fillStyle="#1a2a3a";
+  c.beginPath();c.moveTo(72,39);c.lineTo(138,40);c.lineTo(133,23);c.lineTo(75,22);c.closePath();c.fill();
+  // Windscreen
+  c.fillStyle="rgba(100,190,255,0.60)";
+  c.beginPath();c.moveTo(98,39);c.lineTo(138,40);c.lineTo(134,25);c.lineTo(100,24);c.fill();
+  c.strokeStyle="rgba(180,230,255,0.45)";c.lineWidth=1;
+  c.beginPath();c.moveTo(100,24);c.lineTo(134,25);c.stroke();
+  // Driver body
+  c.fillStyle="#2471a3";c.fillRect(83,8,16,18);
+  // Helmet
+  c.fillStyle="#FF6B35";
+  c.beginPath();c.arc(91,9,11,0,Math.PI*2);c.fill();
+  c.fillStyle="rgba(10,10,40,0.88)";
+  c.beginPath();c.moveTo(83,8);c.lineTo(100,8);c.lineTo(100,15);c.lineTo(83,15);c.fill();
+  c.strokeStyle="rgba(120,200,255,0.65)";c.lineWidth=1;
+  c.beginPath();c.moveTo(83,8);c.lineTo(100,8);c.stroke();
+  c.strokeStyle="#f1c40f";c.lineWidth=2;
+  c.beginPath();c.moveTo(91,0);c.lineTo(91,7);c.stroke();
+  // Labels
+  c.fillStyle="#fff";c.font="bold 9px Arial";c.textAlign="center";
+  c.fillText("18",106,55);
+  c.font="5px Arial";c.fillText("ZALLY",62,51);
+  c.textAlign="left";
+}
+
+/* ═══════ DRAW FIELD ═══════ */
+// Dispatch: shot 4 uses a dedicated close-up green view, others share the normal engine
+function drawField(s){
+  if(shotIdx===3) drawFieldShot4(s);
+  else drawFieldNormal(s);
+}
+
+// Depth → parallax factor: distant trees barely move, foreground trees move most
+function treeDF(yo){ return yo<12?0.12 : yo<45?0.32 : 0.58; }
+
+// Shared ball renderer (white dimpled gradient + specular highlight)
+function drawBall(c,x,y,r){
+  const g=c.createRadialGradient(x-r*.28,y-r*.32,r*.08,x,y,r);
+  g.addColorStop(0,"#fff"); g.addColorStop(0.5,"#eee"); g.addColorStop(1,"#bbb");
+  c.fillStyle=g; c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill();
+  c.fillStyle="rgba(255,255,255,.8)";
+  c.beginPath(); c.arc(x-r*.3,y-r*.32,r*.28,0,Math.PI*2); c.fill();
+}
+
+// Pulsing yellow "ready" arrow above a pre-launch ball (sin wave)
+function drawPulseArrow(c,x,y){
+  const p=(Math.sin(Date.now()*0.005)+1)/2;
+  const ay=y-24-(p*8);
+  c.save();
+  c.globalAlpha=0.55+p*0.45;
+  c.strokeStyle="#f5d020"; c.fillStyle="#f5d020"; c.lineWidth=3;
+  c.beginPath(); c.moveTo(x,ay+18); c.lineTo(x,ay); c.stroke();
+  c.beginPath(); c.moveTo(x-7,ay+8); c.lineTo(x,ay-2); c.lineTo(x+7,ay+8); c.closePath(); c.fill();
+  c.restore();
+}
+
+// Ball trail + ball in flight (shared by both views)
+function drawTrailAndBall(c,hz,H){
+  trail.forEach((p,i)=>{
+    const a=(i/trail.length)*0.65, r=1.5+(i/trail.length)*3;
+    c.fillStyle="rgba(255,244,80,"+a+")";
+    c.beginPath(); c.arc(p.x,p.y,r,0,Math.PI*2); c.fill();
+  });
+  if(phase==="flight"||phase==="result"||phase==="sinking"){
+    const depthT=Math.max(0,(by-hz))/(H-hz);
+    const r=Math.max(2,7*(1-depthT*.8));
+    c.fillStyle="rgba(0,0,0,0.18)";
+    c.beginPath(); c.ellipse(bx,ballShadowY+2,r*1.6,r*.44,0,0,Math.PI*2); c.fill();
+    drawBall(c,bx,by,r);
+  }
+}
+
+/* ═══════ NORMAL FIELD (shots 1-3) ═══════ */
+function drawFieldNormal(s){
+  const c=fCtx,W=fieldW,H=FH;
+  c.clearRect(0,0,W,H);
+  const hz=currentHz, VP=W/2;     // VP always centred on the (animating) field width
+  const v=VIEWS[shotIdx];
+
+  // ── SKY — deep azure top, warm haze at horizon (golden hour) ──
+  const skyG=c.createLinearGradient(0,0,0,hz);
+  skyG.addColorStop(0,"#2a6ab8");
+  skyG.addColorStop(0.45,"#4a9ad8");
+  skyG.addColorStop(0.78,"#80c4f0");
+  skyG.addColorStop(1,"#c8e8f8");
+  c.fillStyle=skyG; c.fillRect(0,0,W,hz);
+
+  // Warm horizon glow (sun bottom-right)
+  const horizGlow=c.createLinearGradient(W*0.55,hz-60,W,hz+20);
+  horizGlow.addColorStop(0,"rgba(255,200,80,0)");
+  horizGlow.addColorStop(0.5,"rgba(255,210,100,0.35)");
+  horizGlow.addColorStop(1,"rgba(255,230,120,0.55)");
+  c.fillStyle=horizGlow; c.fillRect(0,hz-60,W,80);
+
+  // ── SUN — bottom right, large warm disc + rays ──
+  const sx=W*0.91, sy=hz+H*0.04;
+  const sunHalo=c.createRadialGradient(sx,sy,0,sx,sy,W*0.28);
+  sunHalo.addColorStop(0,"rgba(255,240,120,0.45)");
+  sunHalo.addColorStop(0.35,"rgba(255,200,60,0.18)");
+  sunHalo.addColorStop(1,"rgba(255,160,0,0)");
+  c.fillStyle=sunHalo; c.beginPath(); c.arc(sx,sy,W*0.28,0,Math.PI*2); c.fill();
+  const sunDisc=c.createRadialGradient(sx,sy,0,sx,sy,38);
+  sunDisc.addColorStop(0,"#fffde0");
+  sunDisc.addColorStop(0.4,"#ffe060");
+  sunDisc.addColorStop(1,"rgba(255,160,0,0.6)");
+  c.fillStyle=sunDisc; c.beginPath(); c.arc(sx,sy,38,0,Math.PI*2); c.fill();
+  c.save();
+  const rayAngles=[-0.55,-0.42,-0.30,-0.18,-0.06,0.08,0.22];
+  rayAngles.forEach(ang=>{
+    c.fillStyle="rgba(255,225,100,0.10)";
+    c.beginPath();
+    c.moveTo(sx,sy);
+    const a1=ang-0.04, a2=ang+0.04;
+    c.lineTo(sx+Math.cos(a1)*W*1.5,sy+Math.sin(a1)*H*1.5);
+    c.lineTo(sx+Math.cos(a2)*W*1.5,sy+Math.sin(a2)*H*1.5);
+    c.fill();
+  });
+  c.restore();
+
+  // ── CLOUDS — soft realistic wisps ──
+  const cloudDefs=[
+    {x:0.04,y:0.08,w:140,h:38,op:0.88},
+    {x:0.18,y:0.04,w:90,h:22,op:0.72},
+    {x:0.35,y:0.10,w:180,h:44,op:0.82},
+    {x:0.56,y:0.06,w:120,h:30,op:0.68},
+    {x:0.72,y:0.12,w:100,h:28,op:0.75},
+    {x:0.05,y:0.18,w:70,h:18,op:0.55},
+    {x:0.45,y:0.19,w:85,h:20,op:0.50},
+  ];
+  cloudDefs.forEach((cd,i)=>{
+    const cx=((cd.x*W+cloudT*0.28*(i%2===0?1:0.6))%(W+200))-100;
+    drawSoftCloud(c,cx,cd.y*H,cd.w,cd.h,cd.op);
+  });
+
+  // ── DISTANT TREELINE at horizon ──
+  const treeHaze=c.createLinearGradient(0,hz-28,0,hz+2);
+  treeHaze.addColorStop(0,"rgba(60,100,50,0)");
+  treeHaze.addColorStop(0.4,"rgba(48,82,40,0.65)");
+  treeHaze.addColorStop(1,"rgba(40,70,32,0.85)");
+  c.fillStyle=treeHaze;
+  c.beginPath(); c.moveTo(0,hz);
+  let tx=0;
+  while(tx<W){
+    const bw=18+Math.sin(tx*0.11)*8;
+    const bh=12+Math.sin(tx*0.07+1)*6;
+    c.arc(tx+bw/2,hz-bh/2,bw/2,Math.PI,0);
+    tx+=bw;
+  }
+  c.lineTo(W,hz); c.lineTo(0,hz); c.fill();
+
+  // ── GROUND BASE — warm golden-green ──
+  const groundG=c.createLinearGradient(0,hz,0,H);
+  groundG.addColorStop(0,"#3a8c30");
+  groundG.addColorStop(0.25,"#4aaa3a");
+  groundG.addColorStop(0.6,"#5ec048");
+  groundG.addColorStop(1,"#78d858");
+  c.fillStyle=groundG; c.fillRect(0,hz,W,H-hz);
+
+  // ── FAIRWAY — wide, alternating stripes ──
+  const FW_TOP=W*0.30, FW_BOT=W*0.98, N=24;
+  for(let i=0;i<N;i++){
+    const t0=i/N, t1=(i+1)/N;
+    const y0=hz+(H-hz)*t0, y1=hz+(H-hz)*t1;
+    const hw0=(FW_TOP/2)+(FW_BOT/2-FW_TOP/2)*t0;
+    const hw1=(FW_TOP/2)+(FW_BOT/2-FW_TOP/2)*t1;
+    const warm=t0*0.15;
+    c.fillStyle=i%2===0
+      ? `rgba(${Math.round(60+warm*60)},${Math.round(168+warm*20)},${Math.round(60-warm*30)},1)`
+      : `rgba(${Math.round(72+warm*60)},${Math.round(192+warm*20)},${Math.round(72-warm*30)},1)`;
+    c.beginPath();
+    c.moveTo(VP-hw0,y0); c.lineTo(VP+hw0,y0);
+    c.lineTo(VP+hw1,y1); c.lineTo(VP-hw1,y1);
+    c.fill();
+  }
+
+  // Long diagonal shadow stripes across fairway
+  c.save();
+  const shadowAngles=[0.3,0.18,0.08,-0.05,-0.15];
+  shadowAngles.forEach((ang,i)=>{
+    c.fillStyle="rgba(0,0,0,0.05)";
+    c.beginPath();
+    c.moveTo(VP+i*90-20,hz);
+    c.lineTo(VP+i*90+20,hz);
+    c.lineTo(VP+i*90+20+ang*H,H);
+    c.lineTo(VP+i*90-20+ang*H,H);
+    c.fill();
+  });
+  c.restore();
+
+  // ── ROUGH on sides ──
+  c.fillStyle="#3a8830";
+  c.beginPath();
+  c.moveTo(0,hz); c.lineTo(VP-FW_TOP/2,hz);
+  c.bezierCurveTo(VP-FW_TOP/2-20,hz+40, VP-FW_BOT/2+60,H*0.6, 0,H);
+  c.lineTo(0,hz); c.fill();
+  c.fillStyle="#3a8830";
+  c.beginPath();
+  c.moveTo(W,hz); c.lineTo(VP+FW_TOP/2,hz);
+  c.bezierCurveTo(VP+FW_TOP/2+20,hz+40, VP+FW_BOT/2-60,H*0.6, W,H);
+  c.lineTo(W,hz); c.fill();
+
+  // ── 7. GOLDEN HOUR HAZE — strong warm band from horizon downward ──
+  const hazeH=(H-hz)*0.55;
+  const hazeG=c.createLinearGradient(0,hz-20,0,hz+hazeH);
+  hazeG.addColorStop(0,"rgba(255,120,15,0.38)");    // orange core at horizon
+  hazeG.addColorStop(0.16,"rgba(255,185,35,0.72)"); // hot golden peak
+  hazeG.addColorStop(0.5,"rgba(255,200,80,0.30)");
+  hazeG.addColorStop(1,"rgba(255,210,120,0)");
+  c.fillStyle=hazeG; c.fillRect(0,hz-20,W,hazeH+20);
+
+  // ── 4. TREES with depth parallax (foreground shifts most during flight) ──
+  const treeDataL=[
+    {x:2,  yo:0,  h:55,w:22,col:"#1a4a18"},
+    {x:28, yo:2,  h:68,w:26,col:"#1e5620"},
+    {x:56, yo:0,  h:48,w:20,col:"#164014"},
+    {x:80, yo:5,  h:72,w:28,col:"#206028"},
+    {x:105,yo:2,  h:58,w:22,col:"#1a4a18"},
+    {x:14, yo:25, h:80,w:32,col:"#1e5620"},
+    {x:48, yo:28, h:92,w:36,col:"#164014"},
+    {x:82, yo:22, h:74,w:30,col:"#206028"},
+    {x:108,yo:30, h:85,w:34,col:"#1a4a18"},
+    {x:6,  yo:60, h:110,w:42,col:"#206028"},
+    {x:52, yo:65, h:125,w:48,col:"#164014"},
+    {x:95, yo:58, h:108,w:44,col:"#1e5620"},
+    {x:20, yo:105,h:140,w:56,col:"#1a4a18"},
+    {x:72, yo:110,h:155,w:60,col:"#206028"},
+  ];
+  treeDataL.forEach(t=>drawRealisticTree(c,t.x+camOffX*treeDF(t.yo),hz+t.yo,t.h,t.w,t.col));
+
+  const treeDataR=[
+    {x:W-6,  yo:0,  h:50,w:20,col:"#206028"},
+    {x:W-32, yo:3,  h:65,w:25,col:"#1a4a18"},
+    {x:W-60, yo:1,  h:45,w:18,col:"#1e5620"},
+    {x:W-88, yo:4,  h:70,w:27,col:"#164014"},
+    {x:W-112,yo:2,  h:55,w:22,col:"#206028"},
+    {x:W-18, yo:22, h:78,w:31,col:"#1a4a18"},
+    {x:W-55, yo:26, h:88,w:35,col:"#1e5620"},
+    {x:W-90, yo:20, h:72,w:29,col:"#164014"},
+    {x:W-118,yo:28, h:82,w:33,col:"#206028"},
+    {x:W-10, yo:58, h:108,w:42,col:"#1e5620"},
+    {x:W-58, yo:62, h:122,w:46,col:"#1a4a18"},
+    {x:W-100,yo:55, h:105,w:43,col:"#206028"},
+    {x:W-25, yo:102,h:138,w:55,col:"#164014"},
+    {x:W-80, yo:108,h:150,w:58,col:"#1e5620"},
+  ];
+  treeDataR.forEach(t=>drawRealisticTree(c,t.x+camOffX*treeDF(t.yo),hz+t.yo,t.h,t.w,t.col));
+
+  // ── LAKE — right of fairway, mid-distance ──
+  const lkDepth=0.44;
+  const lkY=hz+(H-hz)*lkDepth;
+  const lkHW=(FW_TOP/2)+(FW_BOT/2-FW_TOP/2)*lkDepth;
+  const lkX=VP+lkHW*0.55;
+  const lkW=70, lkH=20;
+  c.fillStyle="#2e7828";
+  c.beginPath(); c.ellipse(lkX,lkY,lkW+14,lkH+8,-0.08,0,Math.PI*2); c.fill();
+  const lkG=c.createRadialGradient(lkX-lkW*.25,lkY-lkH*.3,2,lkX,lkY,lkW);
+  lkG.addColorStop(0,"#a0d8f8");
+  lkG.addColorStop(0.3,"#5ab0e0");
+  lkG.addColorStop(0.7,"#2880c0");
+  lkG.addColorStop(1,"#1060a0");
+  c.fillStyle=lkG;
+  c.beginPath(); c.ellipse(lkX,lkY,lkW,lkH,-0.08,0,Math.PI*2); c.fill();
+  c.save();
+  c.beginPath(); c.ellipse(lkX,lkY,lkW,lkH,-0.08,0,Math.PI*2); c.clip();
+  const reflG=c.createLinearGradient(lkX-lkW,lkY-lkH,lkX+lkW,lkY+lkH);
+  reflG.addColorStop(0,"rgba(255,255,255,0)");
+  reflG.addColorStop(0.3,"rgba(255,255,255,0.40)");
+  reflG.addColorStop(0.6,"rgba(200,230,255,0.20)");
+  reflG.addColorStop(1,"rgba(255,255,255,0)");
+  c.fillStyle=reflG; c.fillRect(lkX-lkW,lkY-lkH,lkW*2,lkH*2);
+  c.strokeStyle="rgba(255,255,255,0.22)"; c.lineWidth=1; c.setLineDash([5,7]);
+  [[-18,-3],[8,2],[32,-2],[-5,6]].forEach(([ox,oy])=>{
+    c.beginPath(); c.arc(lkX+ox,lkY+oy,10,0.2,Math.PI-0.2); c.stroke();
+  });
+  c.setLineDash([]); c.restore();
+  c.strokeStyle="rgba(40,100,60,0.5)"; c.lineWidth=1.5;
+  c.beginPath(); c.ellipse(lkX,lkY,lkW,lkH,-0.08,0,Math.PI*2); c.stroke();
+
+  // ── BUNKERS flanking green ──
+  const gDepth=0.18;
+  const gY=hz+(H-hz)*gDepth;
+  const gHW=(FW_TOP/2)+(FW_BOT/2-FW_TOP/2)*gDepth;
+  function drawBunker(bxx,byy,rw,rh,rot){
+    c.fillStyle="#2e8830";
+    c.beginPath(); c.ellipse(bxx,byy-rh*.4,rw*1.2,rh*1.3,rot,0,Math.PI*2); c.fill();
+    c.fillStyle="#d4b870";
+    c.beginPath(); c.ellipse(bxx,byy,rw,rh,rot,0,Math.PI*2); c.fill();
+    c.fillStyle="#ecd898";
+    c.beginPath(); c.ellipse(bxx,byy-rh*.05,rw*.6,rh*.6,rot,0,Math.PI*2); c.fill();
+    const rimG=c.createLinearGradient(bxx,byy-rh,bxx,byy+rh);
+    rimG.addColorStop(0,"rgba(100,70,10,0.35)");
+    rimG.addColorStop(0.5,"rgba(100,70,10,0)");
+    c.save(); c.beginPath(); c.ellipse(bxx,byy,rw,rh,rot,0,Math.PI*2); c.clip();
+    c.fillStyle=rimG; c.fillRect(bxx-rw,byy-rh,rw*2,rh*2); c.restore();
+  }
+  // Realistic layout: one greenside bunker + a grassy hillock on the fairway
+  // with a second bunker tucked just below it. The lake guards the right side.
+  const fairHW=t=>(FW_TOP/2)+(FW_BOT/2-FW_TOP/2)*t;
+  // hy = ground-contact line; the mound bulges UP from there (a dome, not flat rings)
+  function drawHill(hx,hy,rw,rh){
+    const peak=rh*1.9, baseDip=rh*0.5;
+    c.fillStyle="rgba(0,0,0,0.15)";                                   // cast shadow on the grass
+    c.beginPath(); c.ellipse(hx+rw*0.5,hy+baseDip*0.7,rw*0.95,baseDip*0.95,0,0,Math.PI*2); c.fill();
+    c.beginPath();                                                    // dome silhouette rising from the footprint
+    c.moveTo(hx-rw,hy);
+    c.bezierCurveTo(hx-rw,hy-peak, hx+rw,hy-peak, hx+rw,hy);
+    c.bezierCurveTo(hx+rw*0.6,hy+baseDip, hx-rw*0.6,hy+baseDip, hx-rw,hy);
+    c.closePath();
+    const g=c.createLinearGradient(hx-rw*0.4,hy-peak,hx+rw*0.35,hy+baseDip); // top lit, base in shade → volume
+    g.addColorStop(0,"#93ec85"); g.addColorStop(0.5,"#58c84e"); g.addColorStop(1,"#2b8b33");
+    c.fillStyle=g; c.fill();
+    c.save(); c.clip();                                              // seat it on the ground
+    const bs=c.createLinearGradient(hx,hy-peak*0.35,hx,hy+baseDip);
+    bs.addColorStop(0,"rgba(0,30,8,0)"); bs.addColorStop(1,"rgba(0,24,6,0.42)");
+    c.fillStyle=bs; c.fillRect(hx-rw,hy-peak,rw*2,peak+baseDip);
+    c.restore();
+    c.fillStyle="rgba(255,255,255,0.20)";                           // sunlit crown
+    c.beginPath(); c.ellipse(hx-rw*0.26,hy-peak*0.52,rw*0.38,peak*0.26,-0.2,0,Math.PI*2); c.fill();
+  }
+  drawBunker(VP+gHW*0.64, gY+5, 18, 6, -0.12);                        // greenside bunker (right)
+  const hillX=VP-fairHW(0.42)*0.45, hillY=hz+(H-hz)*0.42, hRw=W*0.08, hRh=H*0.032;
+  drawHill(hillX,hillY,hRw,hRh);                                      // collinetta on the left fairway
+  drawBunker(hillX+hRw*0.12, hillY+hRh+(H-hz)*0.05, 22, 7.5, 0.12);   // second bunker, just below the hill
+
+  // ── GREEN ──
+  const gx=VP, gy=gY, gRX=52, gRY=15;
+  c.fillStyle="rgba(0,0,0,0.15)";
+  c.beginPath(); c.ellipse(gx+3,gy+5,gRX+6,gRY+3,0,0,Math.PI*2); c.fill();
+  const greenG=c.createRadialGradient(gx-gRX*.2,gy-gRY*.3,2,gx,gy,gRX);
+  greenG.addColorStop(0,"#72f890");
+  greenG.addColorStop(0.3,"#4ae068");
+  greenG.addColorStop(0.7,"#28c050");
+  greenG.addColorStop(1,"#18983a");
+  c.fillStyle=greenG;
+  c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.fill();
+  c.save();
+  c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.clip();
+  for(let si=-gRX;si<gRX;si+=8){
+    c.fillStyle=si%16===0?"rgba(0,0,0,0.05)":"rgba(255,255,255,0.04)";
+    c.fillRect(gx+si,gy-gRY,8,gRY*2);
+  }
+  c.restore();
+  c.strokeStyle="#18803a"; c.lineWidth=1.5;
+  c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.stroke();
+  c.fillStyle="rgba(255,255,255,0.18)";
+  c.beginPath(); c.ellipse(gx-gRX*.25,gy-gRY*.3,gRX*.38,gRY*.45,-0.3,0,Math.PI*2); c.fill();
+  c.fillStyle="#111";
+  c.beginPath(); c.ellipse(gx,gy+2,5,2.5,0,0,Math.PI*2); c.fill();
+
+  // ── FLAG PIN ──
+  const pinH=52;
+  c.strokeStyle="rgba(0,0,0,0.15)"; c.lineWidth=1.5;
+  c.beginPath(); c.moveTo(gx+3,gy+2); c.lineTo(gx+6,gy-pinH); c.stroke();
+  c.strokeStyle="#e8e8e8"; c.lineWidth=2;
+  c.beginPath(); c.moveTo(gx,gy+2); c.lineTo(gx,gy-pinH); c.stroke();
+  const flagW=22, flagH=14, sqS=flagW/2;
+  [[0,0,"#fff"],[sqS,0,"#222"],[0,flagH/2,"#222"],[sqS,flagH/2,"#fff"]].forEach(([fx,fy,fc])=>{
+    c.fillStyle=fc; c.fillRect(gx+fx,gy-pinH+fy,sqS,flagH/2);
+  });
+  c.fillStyle="rgba(0,0,0,0.4)";
+  c.fillRect(gx,gy-pinH,flagW,flagH);
+  c.fillStyle=s.color;
+  c.font="bold 7px sans-serif"; c.textAlign="center";
+  c.fillText(s.icon,gx+flagW/2,gy-pinH+10); c.textAlign="left";
+
+  // ── 8. TEE BOX — only on shot 1 ──
+  if(v.tee){
+    const teeX=VP, teeY=H*0.87, tRX=70, tRY=18;
+    const teeG2=c.createRadialGradient(teeX,teeY-5,4,teeX,teeY,tRX);
+    teeG2.addColorStop(0,"#5af090");
+    teeG2.addColorStop(0.5,"#38d870");
+    teeG2.addColorStop(1,"#22b855");
+    c.fillStyle=teeG2;
+    c.beginPath(); c.ellipse(teeX,teeY,tRX,tRY,0,0,Math.PI*2); c.fill();
+    c.strokeStyle="rgba(255,255,255,0.45)"; c.lineWidth=1.5;
+    c.beginPath(); c.ellipse(teeX,teeY,tRX,tRY,0,0,Math.PI*2); c.stroke();
+    c.fillStyle="#fff";
+    c.fillRect(teeX-tRX+5,teeY-4,5,9); c.fillRect(teeX+tRX-10,teeY-4,5,9);
+    // tee stick + pre-launch ball
+    if(phase==="challenge"||phase==="power"){
+      c.strokeStyle="#f5c820"; c.lineWidth=2.5;
+      c.beginPath(); c.moveTo(teeX-2,teeY-7); c.lineTo(teeX-2,teeY-20); c.stroke();
+      drawBall(c,teeX-2,teeY-20,6);
+    }
+  }
+
+  // ── 9. PRE-LAUNCH ball + pulsing arrow on fairway (shots 2-3) ──
+  if(!v.tee && (phase==="challenge"||phase==="power")){
+    const px=W*v.ballXf, py=H*v.ballYf;
+    drawPulseArrow(c,px,py);
+    drawBall(c,px,py,7);
+  }
+
+  // ── 10. ZALLY swing sprite in field, sized per shot ──
+  if(v.zallyHf>0 && SPR_SWING.complete && SPR_SWING.naturalWidth>0){
+    const zH=H*v.zallyHf;
+    const zW=zH*(SPR_SWING.naturalWidth/SPR_SWING.naturalHeight);
+    const zFeetY=H*v.ballYf+6;
+    const zCx=W*v.ballXf - zW*0.12;
+    const zX=zCx-zW*0.5;
+    c.fillStyle="rgba(0,0,0,0.16)";
+    c.beginPath(); c.ellipse(zCx,zFeetY,zW*.34,6,0,0,Math.PI*2); c.fill();
+    c.imageSmoothingEnabled=true; c.imageSmoothingQuality="high";
+    c.drawImage(SPR_SWING,zX,zFeetY-zH,zW,zH);
+    if(zallyState==="swing"){
+      c.strokeStyle="rgba(255,255,80,0.38)"; c.lineWidth=2; c.setLineDash([4,5]);
+      c.beginPath(); c.arc(zX+zW*.72,zFeetY-zH*.6,zW*.5,-1.7,-0.1); c.stroke();
+      c.setLineDash([]);
+    }
+  }
+
+  // ── BALL TRAIL + BALL IN FLIGHT ──
+  drawTrailAndBall(c,hz,H);
+
+  // ── VIGNETTE ──
+  const vigG=c.createRadialGradient(W*0.5,H*0.5,W*0.25,W*0.5,H*0.5,W*0.82);
+  vigG.addColorStop(0,"rgba(0,0,0,0)");
+  vigG.addColorStop(1,"rgba(0,0,0,0.32)");
+  c.fillStyle=vigG; c.fillRect(0,0,W,H);
+}
+
+/* ═══════ 2. SHOT 4 CLOSE-UP GREEN VIEW ═══════ */
+function drawFieldShot4(s){
+  const c=fCtx,W=fieldW,H=FH;
+  c.clearRect(0,0,W,H);
+  const hz=currentHz, VP=W/2;   // very low horizon (~H*0.25): we are right at the green
+
+  // ── SKY band (small) ──
+  const skyG=c.createLinearGradient(0,0,0,hz);
+  skyG.addColorStop(0,"#2a6ab8");
+  skyG.addColorStop(0.5,"#5aa0dc");
+  skyG.addColorStop(1,"#b8e0f6");
+  c.fillStyle=skyG; c.fillRect(0,0,W,hz);
+
+  // ── SUN low & big on the horizon ──
+  const sx=W*0.72, sy=hz-8;
+  const halo=c.createRadialGradient(sx,sy,0,sx,sy,W*0.34);
+  halo.addColorStop(0,"rgba(255,235,130,0.6)");
+  halo.addColorStop(0.4,"rgba(255,190,60,0.22)");
+  halo.addColorStop(1,"rgba(255,150,0,0)");
+  c.fillStyle=halo; c.beginPath(); c.arc(sx,sy,W*0.34,0,Math.PI*2); c.fill();
+  const disc=c.createRadialGradient(sx,sy,0,sx,sy,44);
+  disc.addColorStop(0,"#fffde0");
+  disc.addColorStop(0.4,"#ffe060");
+  disc.addColorStop(1,"rgba(255,150,0,0.5)");
+  c.fillStyle=disc; c.beginPath(); c.arc(sx,sy,44,0,Math.PI*2); c.fill();
+
+  // ── CLOUDS ──
+  const cl=[{x:0.1,y:0.05,w:130,h:30,op:0.8},{x:0.5,y:0.08,w:160,h:36,op:0.7},{x:0.82,y:0.04,w:100,h:24,op:0.6}];
+  cl.forEach((cd,i)=>{const cx=((cd.x*W+cloudT*0.2*(i%2?0.6:1))%(W+200))-100;drawSoftCloud(c,cx,cd.y*H,cd.w,cd.h,cd.op);});
+
+  // ── DISTANT TREELINE ──
+  const treeHaze=c.createLinearGradient(0,hz-26,0,hz+2);
+  treeHaze.addColorStop(0,"rgba(50,90,44,0)");
+  treeHaze.addColorStop(1,"rgba(38,68,32,0.85)");
+  c.fillStyle=treeHaze;
+  c.beginPath(); c.moveTo(0,hz);
+  let tx=0;
+  while(tx<W){const bw=20+Math.sin(tx*0.1)*8;const bh=14+Math.sin(tx*0.06+1)*7;c.arc(tx+bw/2,hz-bh/2,bw/2,Math.PI,0);tx+=bw;}
+  c.lineTo(W,hz); c.fill();
+
+  // ── GROUND ──
+  const groundG=c.createLinearGradient(0,hz,0,H);
+  groundG.addColorStop(0,"#3a8c30");
+  groundG.addColorStop(0.4,"#54b840");
+  groundG.addColorStop(1,"#74d456");
+  c.fillStyle=groundG; c.fillRect(0,hz,W,H-hz);
+
+  // ── DISTANT FAIRWAY narrowing toward horizon ──
+  const fairTop=W*0.16, fairBot=W*0.6, fairTopY=hz, fairBotY=H*0.5;
+  c.fillStyle="#54bc42";
+  c.beginPath();
+  c.moveTo(VP-fairTop/2,fairTopY); c.lineTo(VP+fairTop/2,fairTopY);
+  c.lineTo(VP+fairBot/2,fairBotY); c.lineTo(VP-fairBot/2,fairBotY);
+  c.fill();
+  c.save();
+  c.beginPath();
+  c.moveTo(VP-fairTop/2,fairTopY); c.lineTo(VP+fairTop/2,fairTopY);
+  c.lineTo(VP+fairBot/2,fairBotY); c.lineTo(VP-fairBot/2,fairBotY);
+  c.clip();
+  for(let i=0;i<8;i++){
+    const t0=i/8,t1=(i+1)/8;
+    const y0=fairTopY+(fairBotY-fairTopY)*t0, y1=fairTopY+(fairBotY-fairTopY)*t1;
+    c.fillStyle=i%2?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.05)";
+    c.fillRect(0,y0,W,y1-y0);
+  }
+  c.restore();
+
+  // ── 7. STRONGER golden haze (shot 4 = even more intense) ──
+  const hazeH=(H-hz)*0.6;
+  const hazeG=c.createLinearGradient(0,hz-26,0,hz+hazeH);
+  hazeG.addColorStop(0,"rgba(255,110,10,0.46)");
+  hazeG.addColorStop(0.16,"rgba(255,180,30,0.80)");
+  hazeG.addColorStop(0.5,"rgba(255,200,80,0.36)");
+  hazeG.addColorStop(1,"rgba(255,210,120,0)");
+  c.fillStyle=hazeG; c.fillRect(0,hz-26,W,hazeH+26);
+
+  // ── BIG FOREGROUND GREEN — rounder ellipse = higher, more top-down camera ──
+  const gx=VP, gy=H*0.66, gRX=W*0.22, gRY=H*0.16;
+  c.fillStyle="rgba(0,0,0,0.18)";
+  c.beginPath(); c.ellipse(gx+4,gy+8,gRX+8,gRY+4,0,0,Math.PI*2); c.fill();
+  const greenG=c.createRadialGradient(gx-gRX*.2,gy-gRY*.3,4,gx,gy,gRX);
+  greenG.addColorStop(0,"#72f890");
+  greenG.addColorStop(0.3,"#4ae068");
+  greenG.addColorStop(0.7,"#28c050");
+  greenG.addColorStop(1,"#178836");
+  c.fillStyle=greenG;
+  c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.fill();
+  c.save();
+  c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.clip();
+  for(let si=-gRX;si<gRX;si+=18){
+    c.fillStyle=(Math.floor((si+gRX)/18))%2?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.05)";
+    c.fillRect(gx+si,gy-gRY,18,gRY*2);
+  }
+  c.restore();
+  c.strokeStyle="#157838"; c.lineWidth=2;
+  c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.stroke();
+  c.fillStyle="rgba(255,255,255,0.16)";
+  c.beginPath(); c.ellipse(gx-gRX*.25,gy-gRY*.3,gRX*.4,gRY*.45,-0.3,0,Math.PI*2); c.fill();
+
+  // ── GREEN READING — faint contour rings around the high side (slope read) ──
+  if(phase==="challenge"||phase==="power"){
+    c.save();
+    c.beginPath(); c.ellipse(gx,gy,gRX,gRY,0,0,Math.PI*2); c.clip();
+    const pkX=gx+gRX*0.5, pkY=gy-gRY*0.45;   // high point: back-right of the green
+    for(let i=1;i<=4;i++){
+      c.strokeStyle=`rgba(235,255,240,${0.13-i*0.02})`;
+      c.lineWidth=1.1;
+      c.beginPath(); c.ellipse(pkX,pkY,gRX*0.16*i,gRY*0.2*i,-0.15,0,Math.PI*2); c.stroke();
+    }
+    // tiny "HIGH" tick at the peak
+    c.fillStyle="rgba(235,255,240,0.5)";
+    c.beginPath(); c.arc(pkX,pkY,1.6,0,Math.PI*2); c.fill();
+    c.restore();
+  }
+
+  // ── BUNKER — one, on the right front of the green (Zally stands on the left) ──
+  function bunker(bxx,byy,rw,rh,rot){
+    c.fillStyle="rgba(0,0,0,0.12)"; c.beginPath(); c.ellipse(bxx,byy+rh*.35,rw*1.05,rh*1.0,rot,0,Math.PI*2); c.fill();
+    c.fillStyle="#2e8830"; c.beginPath(); c.ellipse(bxx,byy-rh*.4,rw*1.2,rh*1.3,rot,0,Math.PI*2); c.fill();
+    c.fillStyle="#d4b870"; c.beginPath(); c.ellipse(bxx,byy,rw,rh,rot,0,Math.PI*2); c.fill();
+    c.fillStyle="#ecd898"; c.beginPath(); c.ellipse(bxx,byy-rh*.05,rw*.6,rh*.6,rot,0,Math.PI*2); c.fill();
+  }
+  bunker(gx+gRX*0.82, gy+gRY*0.62, W*0.058, H*0.026,-0.16);
+
+  // ── HOLE + PIN ──
+  const hxp=gx, hyp=gy-gRY*0.1;
+  // drop-in flash progress (0→1 over 520ms); a fresh make also shakes the flag
+  const nowMs=performance.now();
+  let cupE=cupFxT?(nowMs-cupFxT)/520:1; if(cupE>=1)cupFxT=0;
+  const flagShake=cupFxT?Math.sin(nowMs*0.05)*5*(1-cupE):0;
+  c.fillStyle="#111";
+  c.beginPath(); c.ellipse(hxp,hyp,6,3,0,0,Math.PI*2); c.fill();
+  const pinH=70;
+  c.strokeStyle="rgba(0,0,0,0.18)"; c.lineWidth=2;
+  c.beginPath(); c.moveTo(hxp+4,hyp); c.lineTo(hxp+8,hyp-pinH); c.stroke();
+  c.strokeStyle="#eee"; c.lineWidth=2.5;
+  c.beginPath(); c.moveTo(hxp,hyp); c.lineTo(hxp,hyp-pinH); c.stroke();
+  c.fillStyle="#f5f5f5";  // pole top knob
+  c.beginPath(); c.arc(hxp,hyp-pinH,2.6,0,Math.PI*2); c.fill();
+  // ── WAVING checkered flag (strips offset by a travelling sine) ──
+  const flagW=28, flagH=16, fTop=hyp-pinH, N=10, sw=flagW/N;
+  for(let i=0;i<N;i++){
+    const fx=(i+0.5)/N;
+    const wave=Math.sin(cloudT*0.22 + fx*5.2)*(3.2*fx) + flagShake*fx;  // 0 at pole → max at free edge
+    const col=fx<0.5?0:1;
+    for(let r=0;r<2;r++){
+      c.fillStyle=((col+r)%2===0)?"#f8f8f8":"#222";
+      c.fillRect(hxp+i*sw, fTop+r*(flagH/2)+wave, sw+0.6, flagH/2);
+    }
+    c.fillStyle="rgba(0,0,0,0.18)";   // soft shading along the lower edge
+    c.fillRect(hxp+i*sw, fTop+flagH-2+wave, sw+0.6, 2);
+  }
+  c.fillStyle=s.color;
+  c.font="bold 8px sans-serif"; c.textAlign="center";
+  c.fillText(s.icon,hxp+flagW*0.5,fTop+flagH*0.72+Math.sin(cloudT*0.22+2.6)*1.4); c.textAlign="left";
+
+  // ── FOREGROUND TREES — pushed to the edges so they frame without crowding Zally ──
+  drawRealisticTree(c,W*0.02,H*0.86,H*0.46,W*0.11,"#164014");
+  drawRealisticTree(c,W*0.09,H*1.00,H*0.54,W*0.13,"#1e5620");
+  drawRealisticTree(c,W*0.95,H*0.86,H*0.50,W*0.12,"#1a4a18");
+  drawRealisticTree(c,W*0.88,H*1.00,H*0.60,W*0.15,"#206028");
+
+  // ── PUTTING SETUP: aim line · Zally · ball — laid out on a clean diagonal ──
+  const v=VIEWS[3], bX=W*v.ballXf, bY=H*v.ballYf;
+  // Dotted aim line ball → cup (only while lining up the putt)
+  if(phase==="challenge"||phase==="power"){
+    c.save();
+    c.strokeStyle="rgba(255,255,255,0.55)"; c.lineWidth=2; c.setLineDash([5,6]);
+    c.beginPath(); c.moveTo(bX,bY); c.lineTo(hxp,hyp); c.stroke();
+    c.setLineDash([]);
+    // small target ring around the cup
+    c.strokeStyle="rgba(255,255,255,0.4)"; c.lineWidth=1.5;
+    c.beginPath(); c.ellipse(hxp,hyp,11,5,0,0,Math.PI*2); c.stroke();
+    c.restore();
+  }
+  // Zally addressing the ball — standing on the green beside it (clear of the bunkers)
+  if(SPR_SWING.complete && SPR_SWING.naturalWidth>0){
+    const zH=H*v.zallyHf, zW=zH*(SPR_SWING.naturalWidth/SPR_SWING.naturalHeight);
+    const zFeetX=bX-W*0.05, zFeetY=bY-H*0.005;
+    const zX=zFeetX-zW*0.5-zW*0.12;
+    c.fillStyle="rgba(0,0,0,0.20)";
+    c.beginPath(); c.ellipse(zFeetX,zFeetY,zW*.34,7,0,0,Math.PI*2); c.fill();
+    c.imageSmoothingEnabled=true; c.imageSmoothingQuality="high";
+    c.drawImage(SPR_SWING,zX,zFeetY-zH,zW,zH);
+    if(zallyState==="swing"){
+      c.strokeStyle="rgba(255,255,80,0.4)"; c.lineWidth=2; c.setLineDash([4,5]);
+      c.beginPath(); c.arc(zX+zW*.72,zFeetY-zH*.6,zW*.5,-1.7,-0.1); c.stroke();
+      c.setLineDash([]);
+    }
+  }
+  // Pre-launch ball resting on the green
+  if(phase==="challenge"||phase==="power") drawBall(c,bX,bY,7);
+
+  // ── BALL TRAIL + FLIGHT ──
+  drawTrailAndBall(c,hz,H);
+
+  // ── DROP-IN FLASH — expanding ring + warm glow when the putt is holed ──
+  if(cupFxT){
+    const e=Math.min(1,(performance.now()-cupFxT)/520);
+    const glow=c.createRadialGradient(hxp,hyp,0,hxp,hyp,34);
+    glow.addColorStop(0,`rgba(255,246,190,${(1-e)*0.55})`);
+    glow.addColorStop(1,"rgba(255,246,190,0)");
+    c.fillStyle=glow; c.beginPath(); c.arc(hxp,hyp,34,0,Math.PI*2); c.fill();
+    c.strokeStyle=`rgba(255,255,255,${(1-e)*0.9})`; c.lineWidth=2.5*(1-e)+0.6;
+    c.beginPath(); c.ellipse(hxp,hyp,6+e*28,3+e*14,0,0,Math.PI*2); c.stroke();
+  }
+
+  // ── VIGNETTE ──
+  const vigG=c.createRadialGradient(W*0.5,H*0.55,W*0.2,W*0.5,H*0.55,W*0.8);
+  vigG.addColorStop(0,"rgba(0,0,0,0)");
+  vigG.addColorStop(1,"rgba(0,0,0,0.34)");
+  c.fillStyle=vigG; c.fillRect(0,0,W,H);
+}
+
+function drawSoftCloud(c,x,y,w,h,opacity){
+  // Soft gradient cloud — not pixel art
+  const puffs=[
+    {ox:0,    oy:0,    rx:w*.44, ry:h*.52},
+    {ox:-w*.22,oy:h*.18,rx:w*.30, ry:h*.42},
+    {ox:w*.25, oy:h*.14,rx:w*.28, ry:h*.40},
+    {ox:-w*.38,oy:h*.30,rx:w*.22, ry:h*.32},
+    {ox:w*.40, oy:h*.28,rx:w*.20, ry:h*.30},
+  ];
+  puffs.forEach(p=>{
+    const g=c.createRadialGradient(x+p.ox-p.rx*.1,y+p.oy-p.ry*.2,0,x+p.ox,y+p.oy,Math.max(p.rx,p.ry));
+    g.addColorStop(0,`rgba(255,255,255,${opacity})`);
+    g.addColorStop(0.6,`rgba(240,248,255,${opacity*.7})`);
+    g.addColorStop(1,"rgba(200,230,255,0)");
+    c.fillStyle=g;
+    c.beginPath(); c.ellipse(x+p.ox,y+p.oy,p.rx,p.ry,0,0,Math.PI*2); c.fill();
+  });
+}
+
+function drawRealisticTree(c,x,y,h,w,darkCol){
+  // Trunk
+  const trunkW=Math.max(3,w*0.12);
+  const trunkH=h*0.28;
+  c.fillStyle="#5a3a18";
+  c.beginPath();
+  c.moveTo(x-trunkW,y);
+  c.lineTo(x+trunkW,y);
+  c.lineTo(x+trunkW*0.7,y-trunkH);
+  c.lineTo(x-trunkW*0.7,y-trunkH);
+  c.fill();
+
+  // Canopy — 3 overlapping ellipses for depth
+  const lightCol=darkCol.replace(/\d+/g,(n,i)=>i===0?Math.min(255,parseInt(n)+30):n);
+  // Back (darker, shadow)
+  c.fillStyle=darkCol;
+  c.beginPath(); c.ellipse(x+w*.08,y-trunkH-h*.38,w*.46,h*.52,0.05,0,Math.PI*2); c.fill();
+  // Mid
+  c.fillStyle=lightCol;
+  c.beginPath(); c.ellipse(x-w*.05,y-trunkH-h*.42,w*.44,h*.50,-0.05,0,Math.PI*2); c.fill();
+  // Front highlight
+  const hlCol=`rgba(${Math.min(255,parseInt(darkCol.slice(1,3),16)+50)},${Math.min(255,parseInt(darkCol.slice(3,5),16)+50)},${Math.min(255,parseInt(darkCol.slice(5,7),16)+30)},0.7)`;
+  c.fillStyle=hlCol;
+  c.beginPath(); c.ellipse(x-w*.1,y-trunkH-h*.48,w*.3,h*.32,-0.1,0,Math.PI*2); c.fill();
+}
+
+function pixelCloud(c,x,y,sc){ drawSoftCloud(c,x,y,sc*70,sc*28,0.82); }
+function nesTree(c,x,y,s,v){ drawRealisticTree(c,x,y,s*3.5,s*1.4,v?"#1e5620":"#164014"); }
+
+/* ═══════ DRAW ZALLY (left panel close-up) ═══════ */
+function drawZally(s){
+  const c=zCtx,W=ZW,H=ZH;
+  c.clearRect(0,0,W,H);
+  /* Background */
+  const skyG=c.createLinearGradient(0,0,0,H*.58);
+  skyG.addColorStop(0,"#3a80c0");skyG.addColorStop(1,"#68b8e8");
+  c.fillStyle=skyG;c.fillRect(0,0,W,H*.58);
+  c.fillStyle="#0c3416";
+  for(let i=0;i<14;i++){const tx=i*25+2,th=14+Math.sin(i*2.4)*6;c.beginPath();c.moveTo(tx,H*.58);c.lineTo(tx+8,H*.58-th);c.lineTo(tx+16,H*.58);c.fill();}
+  const gG=c.createLinearGradient(0,H*.58,0,H);
+  gG.addColorStop(0,"#28b855");gG.addColorStop(1,"#1a7838");
+  c.fillStyle=gG;c.fillRect(0,H*.58,W,H*.42);
+  c.fillStyle="#30cc62";c.fillRect(W*.15,H*.58,W*.70,H*.42);
+  /* Always show the real IDLE Zally sprite (every shot, including the putt) */
+  const spr=SPR_IDLE;
+  if(spr.complete&&spr.naturalWidth>0){
+    const sprH=H*0.92,sprW=sprH;
+    const sprX=(W-sprW)/2,sprY=H-sprH+4;
+    c.fillStyle="rgba(0,0,0,0.22)";c.beginPath();c.ellipse(sprX+sprW/2,H-6,sprW*0.32,7,0,0,Math.PI*2);c.fill();
+    c.imageSmoothingEnabled=false;c.drawImage(spr,sprX,sprY,sprW,sprH);
+  }else{
+    c.fillStyle="rgba(255,255,255,0.2)";c.fillRect(W/2-20,H*.2,40,60);
+  }
+}
+
+/* ═══════ FX ═══════ */
+function spawnStars(n){
+  const em=["⭐","✨","🌟","💫","🎉","⛳"];
+  for(let i=0;i<n*3;i++){
+    const el=document.createElement("div");
+    el.textContent=em[Math.floor(Math.random()*em.length)];
+    el.style.cssText="position:absolute;font-size:"+(14+Math.random()*16)+"px;left:"+(8+Math.random()*84)+"%;top:"+(6+Math.random()*52)+"%;pointer-events:none;z-index:65;animation:starFly 1.4s "+(Math.random()*.45)+"s ease-out forwards;";
+    document.getElementById("G").appendChild(el);setTimeout(()=>el.remove(),2000);
+  }
+}
+
+/* ═══════ AUDIO ═══════ */
+function mkAC(){try{return new(window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}}
+function playSwingSound(){const a=mkAC();if(!a)return;const o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type="sawtooth";o.frequency.setValueAtTime(340,a.currentTime);o.frequency.exponentialRampToValueAtTime(52,a.currentTime+.22);g.gain.setValueAtTime(.38,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.22);o.start();o.stop(a.currentTime+.22);}
+function playLandSound(){const a=mkAC();if(!a)return;const buf=a.createBuffer(1,a.sampleRate*.12,a.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(a.sampleRate*.030));const s=a.createBufferSource(),g=a.createGain();s.buffer=buf;g.gain.value=.22;s.connect(g);g.connect(a.destination);s.start();}
+function playResultSound(delta){const a=mkAC();if(!a)return;const ns=delta<0?[523,659,784,1047]:delta===0?[392,494]:[220,186];ns.forEach((f,i)=>{const o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type="square";o.frequency.value=f;g.gain.setValueAtTime(0,a.currentTime+i*.13);g.gain.linearRampToValueAtTime(.15,a.currentTime+i*.13+.02);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+i*.13+.11);o.start(a.currentTime+i*.13);o.stop(a.currentTime+i*.13+.12);});}
+function playHoleInSound(){const a=mkAC();if(!a)return;[523,659,784,659,1047,1319].forEach((f,i)=>{const o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type="square";o.frequency.value=f;g.gain.setValueAtTime(0,a.currentTime+i*.1);g.gain.linearRampToValueAtTime(.16,a.currentTime+i*.1+.02);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+i*.1+.09);o.start(a.currentTime+i*.1);o.stop(a.currentTime+i*.1+.1);});}
+function playVictorySound(){const a=mkAC();if(!a)return;[523,659,784,880,1047,1175,1319,1047,1319,1568].forEach((f,i)=>{const o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type="square";o.frequency.value=f;g.gain.setValueAtTime(0,a.currentTime+i*.1);g.gain.linearRampToValueAtTime(.13,a.currentTime+i*.1+.02);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+i*.1+.09);o.start(a.currentTime+i*.1);o.stop(a.currentTime+i*.1+.1);});}
+</script>
+</body>
+</html>
