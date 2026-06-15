@@ -969,14 +969,13 @@ function drawFieldNormal(s){
     c.save(); c.beginPath(); c.ellipse(bxx,byy,rw,rh,rot,0,Math.PI*2); c.clip();
     c.fillStyle=rimG; c.fillRect(bxx-rw,byy-rh,rw*2,rh*2); c.restore();
   }
-  // Two greenside bunkers (mirrored) + two fairway bunkers nearer the player.
-  // Sizes grow with depth so closer hazards read larger — intentional, symmetric.
+  // Two greenside bunkers (mirrored) + one left fairway bunker.
+  // The right side is guarded by the lake, so no bunker there (it would overlap it).
   const fairHW=t=>(FW_TOP/2)+(FW_BOT/2-FW_TOP/2)*t;
   drawBunker(VP-gHW*0.64, gY+5, 18, 6,  0.12);
   drawBunker(VP+gHW*0.64, gY+5, 18, 6, -0.12);
   const fbY=hz+(H-hz)*0.46, fbHW=fairHW(0.46);
   drawBunker(VP-fbHW*0.72, fbY, 27, 9.5,  0.10);
-  drawBunker(VP+fbHW*0.72, fbY, 27, 9.5, -0.10);
 
   // ── GREEN ──
   const gx=VP, gy=gY, gRX=52, gRY=15;
