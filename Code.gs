@@ -8,18 +8,19 @@
  *
  * IMAGE HANDLING (Google Drive, high performance):
  *   The three Zally sprites are NOT loaded with DriveApp or any API call.
- *   They are plain text links in the exact format requested. Just paste the
- *   Drive file ID of each picture in place of [INSERISCI_ID_QUI].
+ *   They are plain text links. Paste the Drive FILE ID of each picture in
+ *   place of FILE_ID (no square brackets), and share each image as
+ *   "Anyone with the link" so the game can read it.
  *
  *   ⚠️ occhio a Zally kart: the kart link below feeds TWO spots in Index.html
  *      (the <img id="kartImg"> tag AND SPR_KART.src), so one ID covers both.
  */
 
 // ── DRIVE IMAGE LINKS ─────────────────────────────────────────────────────
-// Replace [INSERISCI_ID_QUI] with the file ID of each image you upload to Drive.
-var IDLE_IMG  = 'http://googleusercontent.com/profile/picture/[INSERISCI_ID_QUI]'; // Zally idle sprite
-var SWING_IMG = 'http://googleusercontent.com/profile/picture/[INSERISCI_ID_QUI]'; // Zally swing sprite
-var KART_IMG  = 'http://googleusercontent.com/profile/picture/[INSERISCI_ID_QUI]'; // Zally kart  (used twice)
+// Replace FILE_ID with the Drive file ID of each image (no brackets).
+var IDLE_IMG  = 'https://lh3.googleusercontent.com/d/FILE_ID'; // Zally idle sprite
+var SWING_IMG = 'https://lh3.googleusercontent.com/d/FILE_ID'; // Zally swing sprite
+var KART_IMG  = 'https://lh3.googleusercontent.com/d/FILE_ID'; // Zally kart  (used twice)
 
 /**
  * Web app entry point. Injects the image links into the HTML template.
