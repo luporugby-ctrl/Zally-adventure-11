@@ -1216,14 +1216,13 @@ function drawFieldShot4(s){
     c.restore();
   }
 
-  // ── BUNKERS — two, symmetric, framing the front of the green ──
+  // ── BUNKER — one, on the right front of the green (Zally stands on the left) ──
   function bunker(bxx,byy,rw,rh,rot){
     c.fillStyle="rgba(0,0,0,0.12)"; c.beginPath(); c.ellipse(bxx,byy+rh*.35,rw*1.05,rh*1.0,rot,0,Math.PI*2); c.fill();
     c.fillStyle="#2e8830"; c.beginPath(); c.ellipse(bxx,byy-rh*.4,rw*1.2,rh*1.3,rot,0,Math.PI*2); c.fill();
     c.fillStyle="#d4b870"; c.beginPath(); c.ellipse(bxx,byy,rw,rh,rot,0,Math.PI*2); c.fill();
     c.fillStyle="#ecd898"; c.beginPath(); c.ellipse(bxx,byy-rh*.05,rw*.6,rh*.6,rot,0,Math.PI*2); c.fill();
   }
-  bunker(gx-gRX*0.82, gy+gRY*0.62, W*0.058, H*0.026, 0.16);
   bunker(gx+gRX*0.82, gy+gRY*0.62, W*0.058, H*0.026,-0.16);
 
   // ── HOLE + PIN ──
