@@ -975,13 +975,25 @@ function drawFieldNormal(s){
     c.save(); c.beginPath(); c.ellipse(bxx,byy,rw,rh,rot,0,Math.PI*2); c.clip();
     c.fillStyle=rimG; c.fillRect(bxx-rw,byy-rh,rw*2,rh*2); c.restore();
   }
-  // Two greenside bunkers (mirrored) + one left fairway bunker.
-  // The right side is guarded by the lake, so no bunker there (it would overlap it).
+  // Realistic layout: one greenside bunker + a grassy hillock on the fairway
+  // with a second bunker tucked just below it. The lake guards the right side.
   const fairHW=t=>(FW_TOP/2)+(FW_BOT/2-FW_TOP/2)*t;
-  drawBunker(VP-gHW*0.64, gY+5, 18, 6,  0.12);
-  drawBunker(VP+gHW*0.64, gY+5, 18, 6, -0.12);
-  const fbY=hz+(H-hz)*0.46, fbHW=fairHW(0.46);
-  drawBunker(VP-fbHW*0.72, fbY, 27, 9.5,  0.10);
+  function drawHill(hx,hy,rw,rh){
+    c.fillStyle="rgba(0,0,0,0.18)";                                   // base shadow grounds the mound
+    c.beginPath(); c.ellipse(hx+rw*0.14,hy+rh*0.55,rw*1.05,rh*0.85,0,0,Math.PI*2); c.fill();
+    const g=c.createRadialGradient(hx-rw*0.32,hy-rh*0.6,2,hx,hy+rh*0.2,rw*1.1); // raised dome, brighter than fairway
+    g.addColorStop(0,"#8eea80"); g.addColorStop(0.5,"#5ece54"); g.addColorStop(1,"#2f9637");
+    c.fillStyle=g; c.beginPath(); c.ellipse(hx,hy,rw,rh,0,0,Math.PI*2); c.fill();
+    c.strokeStyle="rgba(16,82,36,0.45)"; c.lineWidth=1.3;             // contour lines for a hill read
+    c.beginPath(); c.ellipse(hx,hy+rh*0.30,rw*0.78,rh*0.55,0,0,Math.PI*2); c.stroke();
+    c.beginPath(); c.ellipse(hx,hy-rh*0.05,rw*0.5,rh*0.4,0,0,Math.PI*2); c.stroke();
+    c.fillStyle="rgba(255,255,255,0.18)";                            // sunlit crown
+    c.beginPath(); c.ellipse(hx-rw*0.3,hy-rh*0.38,rw*0.46,rh*0.42,-0.2,0,Math.PI*2); c.fill();
+  }
+  drawBunker(VP+gHW*0.64, gY+5, 18, 6, -0.12);                        // greenside bunker (right)
+  const hillX=VP-fairHW(0.42)*0.45, hillY=hz+(H-hz)*0.42, hRw=W*0.08, hRh=H*0.032;
+  drawHill(hillX,hillY,hRw,hRh);                                      // collinetta on the left fairway
+  drawBunker(hillX+hRw*0.12, hillY+hRh+(H-hz)*0.05, 22, 7.5, 0.12);   // second bunker, just below the hill
 
   // ── GREEN ──
   const gx=VP, gy=gY, gRX=52, gRY=15;
